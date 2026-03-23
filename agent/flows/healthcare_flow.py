@@ -1,7 +1,13 @@
 """Healthcare Human Oversight Flow — Article 14 EU AI Act.
 
-5-step pipeline: sensor → situation → decision → oversight → audit.
-Each step persists its output as an auditable artifact via the PAC-AI protocol.
+3-step pipeline: clinical_pipeline (sensor→situation→decision) → oversight → audit.
+
+The clinical pipeline runs as a single multi-task crew (HealthcareClinicalCrew)
+with Semantic-Forward task chaining: each task outputs a full jhcontext Envelope,
+and subsequent tasks consume the ``semantic_payload`` field as canonical input.
+
+Task-level persistence happens in parallel via ``_persist_task_callback`` —
+each task's Envelope is signed and POSTed to the backend while the next task runs.
 """
 
 from __future__ import annotations
@@ -14,10 +20,8 @@ from crewai.flow.flow import Flow, listen, start
 
 from agent.crews.healthcare.crew import (
     HealthcareAuditCrew,
-    HealthcareDecisionCrew,
+    HealthcareClinicalCrew,
     HealthcareOversightCrew,
-    HealthcareSensorCrew,
-    HealthcareSituationCrew,
 )
 from agent.protocol.context_mixin import ContextMixin
 
@@ -48,69 +52,35 @@ class HealthcareFlow(Flow, ContextMixin):
         return self.state.get("patient_input", self._default_patient())
 
     @listen(init)
-    def sensor_collection(self, input_data):
-        print("[Healthcare] Step 1/5: Sensor collection...")
-        t0 = datetime.now(timezone.utc)
-        result = HealthcareSensorCrew().crew().kickoff(inputs=input_data)
-        t1 = datetime.now(timezone.utc)
+    def clinical_pipeline(self, input_data):
+        """Steps 1-3: sensor → situation → decision (single multi-task crew).
 
-        self._persist_step(
-            step_name="sensor",
-            agent_id="did:hospital:sensor-agent",
-            output=result.raw,
-            artifact_type=ArtifactType.TOKEN_SEQUENCE,
-            started_at=t0.isoformat(),
-            ended_at=t1.isoformat(),
-        )
-        return result.raw
+        The HealthcareClinicalCrew runs 3 tasks sequentially. Each task
+        outputs a full jhcontext Envelope. The task_callback persists each
+        Envelope to the backend in parallel with the next task's execution.
+        """
+        print("[Healthcare] Steps 1-3: Clinical pipeline (Semantic-Forward)...")
 
-    @listen(sensor_collection)
-    def situation_recognition(self, sensor_output):
-        print("[Healthcare] Step 2/5: Situation recognition...")
-        t0 = datetime.now(timezone.utc)
-        result = HealthcareSituationCrew().crew().kickoff(
-            inputs={"sensor_data": sensor_output}
-        )
-        t1 = datetime.now(timezone.utc)
+        clinical_crew = HealthcareClinicalCrew()
+        crew_instance = clinical_crew.crew()
+        crew_instance.task_callback = self._persist_task_callback
 
-        self._persist_step(
-            step_name="situation",
-            agent_id="did:hospital:situation-agent",
-            output=result.raw,
-            artifact_type=ArtifactType.SEMANTIC_EXTRACTION,
-            started_at=t0.isoformat(),
-            ended_at=t1.isoformat(),
-            used_artifacts=["art-sensor"],
-        )
-        return result.raw
+        preamble = self.state["_forwarding_preamble"]
+        result = crew_instance.kickoff(inputs={
+            **input_data,
+            "_forwarding_preamble": preamble,
+        })
 
-    @listen(situation_recognition)
-    def treatment_decision(self, situation_output):
-        print("[Healthcare] Step 3/5: Treatment decision...")
-        t0 = datetime.now(timezone.utc)
-        result = HealthcareDecisionCrew().crew().kickoff(
-            inputs={"situation": situation_output}
-        )
-        t1 = datetime.now(timezone.utc)
-
-        self._persist_step(
-            step_name="decision",
-            agent_id="did:hospital:decision-agent",
-            output=result.raw,
-            artifact_type=ArtifactType.SEMANTIC_EXTRACTION,
-            started_at=t0.isoformat(),
-            ended_at=t1.isoformat(),
-            used_artifacts=["art-situation"],
-        )
-
+        # Log the treatment decision
         self._log_decision(
             outcome={"recommendation": result.raw[:200], "requires_oversight": True},
             agent_id="did:hospital:decision-agent",
         )
         return result.raw
 
-    @listen(treatment_decision)
+    @listen(clinical_pipeline)
     def physician_oversight(self, decision_output):
+        """Step 4: Physician oversight (separate crew for regulatory isolation)."""
         print("[Healthcare] Step 4/5: Physician oversight...")
         t0 = datetime.now(timezone.utc)
         result = HealthcareOversightCrew().crew().kickoff(
@@ -131,6 +101,7 @@ class HealthcareFlow(Flow, ContextMixin):
 
     @listen(physician_oversight)
     def compliance_audit(self, oversight_output):
+        """Step 5: Compliance audit (separate crew for regulatory isolation)."""
         print("[Healthcare] Step 5/5: Compliance audit...")
         t0 = datetime.now(timezone.utc)
         result = HealthcareAuditCrew().crew().kickoff(

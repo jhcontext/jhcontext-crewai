@@ -1,0 +1,65 @@
+profile_task:
+  description: >
+    {_forwarding_preamble}Analyze browsing and purchase history for user {user_id}.
+    Recent browsing: {browsing_history}. Past purchases: {purchase_history}.
+    Extract: preferred categories, price range, brand affinities,
+    recent search terms, and seasonal patterns.
+
+    Output a jhcontext protocol envelope. Place the user preference
+    profile in ``semantic_payload`` as a list of observation dicts.
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-profile" and type="semantic_extraction".
+    Set scope="product_recommendation",
+    producer="did:ecommerce:profile-agent",
+    compliance.risk_level="low", compliance.human_oversight_required=false,
+    compliance.forwarding_policy="raw_forward".
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload containing a user
+    preference profile (categories, price range, brands, interests),
+    one SEMANTIC_EXTRACTION artifact, and compliance block set to low risk
+    with forwarding_policy=raw_forward.
+  agent: profile_agent
+
+search_task:
+  description: >
+    {_forwarding_preamble}Search the product catalog for items matching the user's
+    preferences from the previous analysis. Consider category
+    fit, price range, brand preference, and seasonal relevance.
+    Return top 10 candidates with relevance scores.
+
+    Output a jhcontext protocol envelope. Place the ranked product
+    candidates in ``semantic_payload``. Register one artifact with
+    artifact_id="art-search" and type="semantic_extraction".
+    Set scope="product_recommendation",
+    producer="did:ecommerce:search-agent",
+    compliance.risk_level="low", compliance.human_oversight_required=false,
+    compliance.forwarding_policy="raw_forward".
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload containing 10
+    ranked product candidates (name, price, relevance score, match
+    explanation), one SEMANTIC_EXTRACTION artifact, and low-risk
+    compliance block.
+  agent: search_agent
+
+personalize_task:
+  description: >
+    {_forwarding_preamble}Generate a final recommendation of 3 products from the candidate
+    list. For each product, provide: product name, price, a personalized
+    explanation connecting the product to the user's preferences, and
+    a confidence score (0-1).
+
+    Output a jhcontext protocol envelope. Place the final recommendations
+    in ``semantic_payload``. Register one artifact with
+    artifact_id="art-personalize" and type="semantic_extraction".
+    Set scope="product_recommendation",
+    producer="did:ecommerce:personalize-agent",
+    compliance.risk_level="low", compliance.human_oversight_required=false,
+    compliance.forwarding_policy="raw_forward".
+    Include decision_influence with categories like "user_preferences",
+    "product_relevance", "price_fit" and influence_weights.
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload containing 3
+    personalized product recommendations (name, price, explanation,
+    confidence), one SEMANTIC_EXTRACTION artifact, low-risk compliance,
+    and decision_influence metadata.
+  agent: personalize_agent

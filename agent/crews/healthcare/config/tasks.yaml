@@ -1,43 +1,80 @@
 sensor_task:
   description: >
-    Collect simulated clinical observations for patient {patient_id}:
+    {_forwarding_preamble}Collect simulated clinical observations for patient {patient_id}:
     demographics (age: {age}, gender: {gender}), lab results
     ({lab_results}), imaging metadata ({imaging_metadata}).
-    Output a structured JSON with all observations including
-    timestamps and source system identifiers.
+
+    Output a jhcontext protocol envelope. Place all clinical observations
+    in the ``semantic_payload`` field as a list of observation dicts.
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-sensor" and type="token_sequence".
+    Set scope="healthcare_treatment_recommendation",
+    producer="did:hospital:sensor-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="raw_forward".
   expected_output: >
-    Structured JSON containing patient demographics, lab results,
-    and imaging metadata with SHA-256 content hashes for each
-    data element.
+    A jhcontext Envelope JSON with semantic_payload containing structured
+    patient observations (demographics, lab results, imaging metadata),
+    artifacts_registry with one TOKEN_SEQUENCE artifact, and compliance
+    block set to high risk with human oversight required and
+    forwarding_policy=raw_forward.
   agent: sensor_agent
 
 situation_task:
   description: >
-    Process the sensor artifacts from the previous step. Generate
-    a semantic extraction summarizing the patient's clinical
-    situation: current diagnosis status, risk indicators, and
-    recommended assessment priority. Follow the Explainability-First
-    architecture — produce human-readable semantic summaries,
-    not raw data forwarding.
+    {_forwarding_preamble}You will receive a jhcontext protocol envelope
+    from the sensor task. Read the ``semantic_payload`` field — this is
+    the auditable semantic extraction of the patient's clinical
+    observations.
+
+    Generate a semantic extraction summarizing the patient's clinical
+    situation: current diagnosis status, risk indicators, and recommended
+    assessment priority. Produce human-readable semantic summaries.
+
+    Output a jhcontext protocol envelope. Place your semantic extraction
+    in ``semantic_payload`` as a list of interpretation/situation dicts.
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-situation" and type="semantic_extraction".
+    Set scope="healthcare_treatment_recommendation",
+    producer="did:hospital:situation-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="semantic_forward".
+    Include decision_influence with categories like "patient_history",
+    "risk_indicators" and appropriate influence_weights.
   expected_output: >
-    A semantic extraction in natural language describing the
-    patient's clinical situation, risk level assessment, and
-    key indicators that informed the assessment.
+    A jhcontext Envelope JSON with semantic_payload containing a clinical
+    situation assessment (risk level, key indicators, priority), one
+    SEMANTIC_EXTRACTION artifact in artifacts_registry, compliance block
+    set to high risk, and decision_influence metadata.
   agent: situation_agent
 
 decision_task:
   description: >
-    Consume the semantic extraction. Generate a treatment
-    recommendation with: (a) recommended treatment plan,
-    (b) confidence score (0-1), (c) supporting evidence
-    from the semantic extraction, (d) risk assessment.
-    Flag human_oversight_required=true for any case with
-    confidence < 0.95 or risk_level=high.
+    {_forwarding_preamble}You will receive a jhcontext protocol envelope
+    from the situation task. Read the ``semantic_payload`` field — this is
+    the auditable semantic extraction of the patient's clinical situation.
+
+    Generate a treatment recommendation with: (a) recommended treatment
+    plan, (b) confidence score (0-1), (c) supporting evidence from the
+    semantic extraction, (d) risk assessment. Flag
+    human_oversight_required=true for any case with confidence < 0.95
+    or risk_level=high.
+
+    Output a jhcontext protocol envelope. Place your recommendation in
+    ``semantic_payload``. Register one artifact in ``artifacts_registry``
+    with artifact_id="art-decision" and type="semantic_extraction".
+    Set scope="healthcare_treatment_recommendation",
+    producer="did:hospital:decision-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="semantic_forward".
+    Include decision_influence with categories like "clinical_situation",
+    "treatment_protocols", "risk_assessment" and influence_weights.
   expected_output: >
-    Treatment recommendation with confidence score, evidence
-    citations, risk assessment, and human_oversight_required
-    flag. Include decision_influence metadata showing which
-    categories influenced the recommendation.
+    A jhcontext Envelope JSON with semantic_payload containing a treatment
+    recommendation (plan, confidence, evidence, risk), one
+    SEMANTIC_EXTRACTION artifact in artifacts_registry, compliance block
+    set to high risk with oversight required, and decision_influence
+    metadata showing which clinical factors influenced the recommendation.
   agent: decision_agent
 
 oversight_task:

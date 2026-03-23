@@ -63,19 +63,24 @@ jhcontext-aws/
 │
 ├── agent/                            # CrewAI flows (runs locally)
 │   ├── protocol/
-│   │   └── context_mixin.py          # CrewAI ↔ PAC-AI bridge mixin
+│   │   └── context_mixin.py          # CrewAI ↔ PAC-AI bridge mixin (forwarding policy)
 │   ├── crews/
-│   │   ├── healthcare/               # 5 agents: sensor→situation→decision→oversight→audit
+│   │   ├── healthcare/               # 3+2 agents: clinical crew + oversight + audit
 │   │   │   ├── config/agents.yaml
 │   │   │   ├── config/tasks.yaml
-│   │   │   └── crew.py
+│   │   │   └── crew.py              # HealthcareClinicalCrew (3 tasks, Semantic-Forward)
+│   │   ├── recommendation/           # 3 agents: profile→search→personalize
+│   │   │   ├── config/agents.yaml
+│   │   │   ├── config/tasks.yaml
+│   │   │   └── crew.py              # RecommendationCrew (3 tasks, Raw-Forward)
 │   │   └── education/                # 4 agents: ingestion→grading→equity→audit
 │   │       ├── config/agents.yaml
 │   │       ├── config/tasks.yaml
 │   │       └── crew.py
 │   ├── flows/
 │   │   ├── healthcare_flow.py        # Article 14 — human oversight with temporal proof
-│   │   └── education_flow.py         # Article 13 — negative proof + workflow isolation
+│   │   ├── education_flow.py         # Article 13 — negative proof + workflow isolation
+│   │   └── recommendation_flow.py    # LOW-risk — Raw-Forward product recommendations
 │   ├── run.py                        # Entry point: python -m agent.run --scenario ...
 │   └── requirements.txt              # Agent deps (crewai — never on Lambda)
 │
@@ -173,7 +178,8 @@ curl -X POST $API/envelopes \
       "status": "active",
       "compliance": {
         "risk_level": "high",
-        "human_oversight_required": true
+        "human_oversight_required": true,
+        "forwarding_policy": "semantic_forward"
       },
       "proof": {
         "content_hash": "abc123"
@@ -298,9 +304,57 @@ curl -X POST $MCP/mcp \
   }'
 ```
 
+## Forwarding Policy
+
+The protocol supports two deployment patterns for inter-task data flow, controlled by
+`compliance.forwarding_policy` in each task's envelope output:
+
+| Policy | Description | Risk Level |
+|--------|-------------|------------|
+| `semantic_forward` | Next task receives **only** `semantic_payload` — structured, auditable semantic extractions. Raw tokens/vectors/embeddings are stripped from the context before the next task runs. | Required for HIGH |
+| `raw_forward` | Next task receives the full envelope (all fields). Faster, but audit trail may diverge from what the agent actually consumed. | Permitted for LOW/MEDIUM |
+
+**Key properties:**
+
+- **Per-task granularity** — each task controls its own forwarding via the envelope it outputs.
+  A fetch task can use `raw_forward` while the downstream classification task switches to
+  `semantic_forward`.
+- **Monotonic enforcement** — once any task in a crew sets `semantic_forward`, subsequent
+  tasks **cannot downgrade** to `raw_forward`. The `ContextMixin._resolve_forwarding_policy()`
+  tracks this boundary in flow state. Violations are overridden with a logged warning.
+- **Full persistence regardless** — the callback persists the **complete envelope** (with all
+  artifact metadata) to the backend API, even when the next task only sees `semantic_payload`.
+  Nothing is lost for audit — raw artifacts are always in the backend for debugging.
+- **Envelope-driven** — the `forwarding_policy` is a first-class field in the `ComplianceBlock`,
+  not a prompt instruction. The `EnvelopeBuilder.set_risk_level(HIGH)` auto-sets
+  `semantic_forward`; `set_risk_level(LOW)` auto-sets `raw_forward`. Tasks can override
+  via their YAML-instructed envelope output.
+
+### Healthcare example (mixed forwarding)
+
+```
+sensor_task  (raw_forward)      →  output.raw = full envelope (all observations)
+                                        ↓  situation_task sees everything
+situation_task (semantic_forward) →  output.raw = {"semantic_payload": [...]} ONLY
+                                        ↓  decision_task sees only semantic data
+decision_task (semantic_forward)  →  only semantic_payload visible
+```
+
+The **semantic boundary** is at the classification step (situation_task). Before it, raw data
+flows freely for ingestion. After it, only structured semantic extractions are visible to
+decision-making tasks — enforced structurally, not by prompt.
+
+### Task preamble injection
+
+The `ContextMixin._get_forwarding_preamble()` method generates a constraint instruction from
+the flow-level envelope's forwarding policy. This preamble is passed to `crew.kickoff(inputs=...)`
+and interpolated into task descriptions via `{_forwarding_preamble}` placeholders in YAML.
+For Semantic-Forward flows, tasks receive an explicit instruction to read only `semantic_payload`.
+For Raw-Forward, the preamble is empty.
+
 ## Running Agent Scenarios
 
-### Healthcare — Article 14 Human Oversight
+### Healthcare — Article 14 Human Oversight (Semantic-Forward)
 
 ```bash
 export JHCONTEXT_API_URL=https://{api-id}.execute-api.us-east-1.amazonaws.com/api
@@ -308,16 +362,19 @@ cd jhcontext-aws
 python -m agent.run --scenario healthcare
 ```
 
-Pipeline: `sensor → situation → decision → physician oversight → audit`
+Pipeline: `sensor → situation → decision` (single multi-task crew) `→ oversight → audit`
 
-Each step:
-1. Runs a CrewAI crew (LLM-powered agent)
-2. Persists the output as an artifact in the envelope via `POST /envelopes`
-3. Extends the W3C PROV graph with activity + entity + relations via `POST /provenance`
-4. The audit step verifies temporal ordering proves meaningful human review
+The clinical pipeline runs as a single `HealthcareClinicalCrew` with 3 agents and 3 tasks.
+Each task outputs a full jhcontext Envelope with `output_pydantic=Envelope`. The
+`_persist_task_callback` fires after each task to:
+1. Resolve the effective forwarding policy (per-task with monotonic enforcement)
+2. Rewrite `output.raw` for Semantic-Forward tasks (strip everything except `semantic_payload`)
+3. Persist the full envelope + PROV graph to the backend in a background thread
+
+Physician oversight and audit run as separate single-task crews (regulatory isolation).
 
 **Outputs** (in `output/`):
-- `healthcare_envelope.json` — complete JSON-LD envelope with all artifacts
+- `healthcare_envelope.json` — complete JSON-LD envelope with all artifacts + `forwarding_policy`
 - `healthcare_prov.ttl` — W3C PROV graph (Turtle) showing the full decision chain
 - `healthcare_audit.json` — Article 14 compliance audit results
 - `healthcare_metrics.json` — per-step timing (envelope generation, persist latency)
@@ -338,7 +395,26 @@ Runs **three isolated workflows**:
 - `education_equity_prov.ttl`
 - `education_audit.json` — negative proof + workflow isolation results
 
-### Run both scenarios
+### Recommendation — LOW-Risk Product Recommendations (Raw-Forward)
+
+```bash
+python -m agent.run --scenario recommendation
+```
+
+Pipeline: `profile → search → personalize` (single multi-task crew, no oversight)
+
+Demonstrates Raw-Forward: all 3 tasks use `raw_forward` — agents consume the full
+aggregated context (CrewAI default). No semantic boundary is crossed. Protocol persistence
+still records full envelopes + PROV for traceability, but without the Semantic-Forward
+constraint.
+
+**Outputs**:
+- `recommendation_envelope.json` — envelope with `forwarding_policy: "raw_forward"`
+- `recommendation_prov.ttl` — PROV graph
+- `recommendation_output.json` — final recommendations
+- `recommendation_metrics.json` — per-step timing
+
+### Run all scenarios
 
 ```bash
 python -m agent.run --scenario all
@@ -546,20 +622,26 @@ Each re-submission (after each step) re-signs with the latest agent ID. The
 `proof.content_hash` allows downstream verification that the envelope hasn't
 been tampered with.
 
-**5. Non-blocking task-level persistence**
+**5. Task-level persistence with forwarding policy enforcement**
 
 For task-level persistence (within a crew), use `_persist_task_callback` as
-CrewAI's `task_callback`. It fires a background thread so the next task isn't
-blocked by API latency:
+CrewAI's `task_callback`. It runs in two phases:
+
+- **Synchronous** — resolves the effective forwarding policy from the task's
+  envelope (with monotonic enforcement), rewrites `output.raw` for Semantic-Forward
+  tasks, and extends the flow-level builder + PROV graph.
+- **Async** — persists the full envelope + PROV to the backend in a background
+  thread so the next task isn't blocked by API latency.
 
 ```python
-@crew
-def crew(self) -> Crew:
-    return Crew(
-        agents=self.agents,
-        tasks=self.tasks,
-        task_callback=self._persist_task_callback,  # non-blocking
-    )
+crew_instance = MyCrew().crew()
+crew_instance.task_callback = self._persist_task_callback
+
+preamble = self.state["_forwarding_preamble"]
+result = crew_instance.kickoff(inputs={
+    **input_data,
+    "_forwarding_preamble": preamble,
+})
 ```
 
 ### Best Practices for API → Agent Results

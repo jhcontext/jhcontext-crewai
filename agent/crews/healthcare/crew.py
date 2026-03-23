@@ -1,14 +1,29 @@
-"""Healthcare compliance crew — 5 agents for Article 14 human oversight."""
+"""Healthcare compliance crews — Article 14 human oversight.
+
+HealthcareClinicalCrew: multi-task crew (sensor → situation → decision)
+demonstrating Semantic-Forward task chaining with full Envelope output.
+
+HealthcareOversightCrew / HealthcareAuditCrew: single-task crews kept
+separate for regulatory isolation (physician oversight and audit must
+be independent of the clinical AI pipeline).
+"""
 
 from __future__ import annotations
 
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from jhcontext.models import Envelope
+
 
 @CrewBase
-class HealthcareSensorCrew:
-    """Sensor data collection crew."""
+class HealthcareClinicalCrew:
+    """Clinical pipeline: sensor → situation → decision (3 agents, 3 tasks).
+
+    Each task outputs a full jhcontext Envelope. In Semantic-Forward mode,
+    each subsequent task reads the ``semantic_payload`` from the previous
+    task's Envelope as its canonical input — ensuring audit alignment.
+    """
 
     agents_config = "config/agents.yaml"
     tasks_config = "config/tasks.yaml"
@@ -17,53 +32,45 @@ class HealthcareSensorCrew:
     def sensor_agent(self) -> Agent:
         return Agent(config=self.agents_config["sensor_agent"], verbose=True)
 
-    @task
-    def sensor_task(self) -> Task:
-        return Task(config=self.tasks_config["sensor_task"])
-
-    @crew
-    def crew(self) -> Crew:
-        return Crew(agents=self.agents, tasks=self.tasks, process=Process.sequential, verbose=True)
-
-
-@CrewBase
-class HealthcareSituationCrew:
-    """Situation recognition crew."""
-
-    agents_config = "config/agents.yaml"
-    tasks_config = "config/tasks.yaml"
-
     @agent
     def situation_agent(self) -> Agent:
         return Agent(config=self.agents_config["situation_agent"], verbose=True)
-
-    @task
-    def situation_task(self) -> Task:
-        return Task(config=self.tasks_config["situation_task"])
-
-    @crew
-    def crew(self) -> Crew:
-        return Crew(agents=self.agents, tasks=self.tasks, process=Process.sequential, verbose=True)
-
-
-@CrewBase
-class HealthcareDecisionCrew:
-    """Treatment recommendation crew."""
-
-    agents_config = "config/agents.yaml"
-    tasks_config = "config/tasks.yaml"
 
     @agent
     def decision_agent(self) -> Agent:
         return Agent(config=self.agents_config["decision_agent"], verbose=True)
 
     @task
+    def sensor_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["sensor_task"],
+            output_pydantic=Envelope,
+        )
+
+    @task
+    def situation_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["situation_task"],
+            context=[self.sensor_task()],
+            output_pydantic=Envelope,
+        )
+
+    @task
     def decision_task(self) -> Task:
-        return Task(config=self.tasks_config["decision_task"])
+        return Task(
+            config=self.tasks_config["decision_task"],
+            context=[self.situation_task()],
+            output_pydantic=Envelope,
+        )
 
     @crew
     def crew(self) -> Crew:
-        return Crew(agents=self.agents, tasks=self.tasks, process=Process.sequential, verbose=True)
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
+            verbose=True,
+        )
 
 
 @CrewBase

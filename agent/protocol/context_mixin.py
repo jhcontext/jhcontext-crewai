@@ -1,7 +1,12 @@
 """CrewAI ↔ PAC-AI protocol bridge mixin.
 
-Pattern mirrors vendia-agent's ContentGenerationMixin: after each crew step,
-persist the envelope + PROV graph via the jhcontext API.
+Thin CrewAI-specific layer that delegates protocol logic to the jhcontext SDK:
+- ``ForwardingEnforcer`` — monotonic policy resolution + output filtering
+- ``StepPersister`` — artifact + envelope + PROV persistence orchestration
+- ``ForwardingPolicy.format_preamble()`` — task instruction generation
+
+The only CrewAI-specific code is ``_persist_task_callback``, which reads/writes
+CrewAI's ``TaskOutput`` object (``output.pydantic``, ``output.raw``).
 """
 
 from __future__ import annotations
@@ -15,22 +20,24 @@ from typing import Any
 from jhcontext import (
     ArtifactType,
     EnvelopeBuilder,
+    ForwardingEnforcer,
+    ForwardingPolicy,
     PROVGraph,
     RiskLevel,
-    compute_content_hash,
+    StepPersister,
     compute_sha256,
 )
 from jhcontext.client.api_client import JHContextClient
 from jhcontext.pii import InMemoryPIIVault
 
 API_URL = os.environ.get("JHCONTEXT_API_URL", "http://localhost:8400")
-LARGE_ARTIFACT_THRESHOLD = 100_000  # 100KB
 
 
 class ContextMixin:
     """Mixin for CrewAI Flows that automatically persists PAC-AI envelopes.
 
-    Usage:
+    Usage::
+
         class MyFlow(Flow, ContextMixin):
             @start()
             def init(self):
@@ -68,16 +75,31 @@ class ContextMixin:
         env = builder.build()
         context_id = env.context_id
 
+        client = JHContextClient(base_url=API_URL)
+        prov = PROVGraph(context_id=context_id)
+
+        # SDK classes for protocol logic
+        enforcer = ForwardingEnforcer()
+        persister = StepPersister(
+            client=client,
+            builder=builder,
+            prov=prov,
+            context_id=context_id,
+        )
+
         self.state["_builder"] = builder
-        self.state["_prov"] = PROVGraph(context_id=context_id)
+        self.state["_prov"] = prov
         self.state["_context_id"] = context_id
-        self.state["_api_client"] = JHContextClient(base_url=API_URL)
+        self.state["_api_client"] = client
         self.state["_pii_vault"] = pii_vault
-        self.state["_step_artifacts"] = []
-        self.state["_metrics"] = {
-            "steps": [],
-            "total_start": time.time(),
-        }
+        self.state["_enforcer"] = enforcer
+        self.state["_persister"] = persister
+        self.state["_total_start"] = time.time()
+
+        # Generate preamble from the envelope's forwarding policy
+        policy = env.compliance.forwarding_policy
+        risk = env.compliance.risk_level.value
+        self.state["_forwarding_preamble"] = policy.format_preamble(risk)
 
         return context_id
 
@@ -91,118 +113,158 @@ class ContextMixin:
         ended_at: str,
         used_artifacts: list[str] | None = None,
     ) -> str:
-        """Call after each crew.kickoff() — extends envelope + PROV, persists."""
-        t0 = time.time()
-
-        content = output.encode("utf-8")
-        content_hash = compute_sha256(content)
-        artifact_id = f"art-{step_name}"
-        client: JHContextClient = self.state["_api_client"]
-        context_id: str = self.state["_context_id"]
-
-        # Upload large artifacts to S3 via artifacts endpoint
-        storage_ref = None
-        if len(content) > LARGE_ARTIFACT_THRESHOLD:
-            resp = client.upload_artifact(
-                artifact_id=artifact_id,
-                context_id=context_id,
-                artifact_type=artifact_type.value,
-                content=content,
-            )
-            storage_ref = resp.get("storage_path")
-
-        # Extend envelope
-        builder: EnvelopeBuilder = self.state["_builder"]
-        builder.add_artifact(
-            artifact_id=artifact_id,
+        """Call after each crew.kickoff() — delegates to SDK StepPersister."""
+        persister: StepPersister = self.state["_persister"]
+        return persister.persist(
+            step_name=step_name,
+            agent_id=agent_id,
+            output=output,
             artifact_type=artifact_type,
-            content_hash=content_hash,
-            storage_ref=storage_ref,
+            started_at=started_at,
+            ended_at=ended_at,
+            used_artifacts=used_artifacts,
         )
-        builder.set_passed_artifact(artifact_id)
-
-        # Extend PROV graph
-        prov: PROVGraph = self.state["_prov"]
-        prov.add_agent(agent_id, agent_id, role=step_name)
-        prov.add_entity(
-            artifact_id,
-            f"Output of {step_name}",
-            artifact_type=artifact_type.value,
-            content_hash=content_hash,
-        )
-        activity_id = f"act-{step_name}"
-        prov.add_activity(
-            activity_id, step_name, started_at=started_at, ended_at=ended_at
-        )
-        prov.was_generated_by(artifact_id, activity_id)
-        prov.was_associated_with(activity_id, agent_id)
-
-        if used_artifacts:
-            for used in used_artifacts:
-                prov.used(activity_id, used)
-                prov.was_derived_from(artifact_id, used)
-
-        # Sign and persist
-        env = builder.sign(agent_id).build()
-        client.submit_envelope(env)
-        client.submit_prov_graph(context_id, prov.serialize("turtle"))
-
-        # Track step artifacts
-        self.state["_step_artifacts"].append(artifact_id)
-
-        # Metrics
-        persist_ms = (time.time() - t0) * 1000
-        self.state["_metrics"]["steps"].append(
-            {
-                "step": step_name,
-                "agent": agent_id,
-                "artifact_id": artifact_id,
-                "content_size_bytes": len(content),
-                "persist_ms": round(persist_ms, 2),
-                "started_at": started_at,
-                "ended_at": ended_at,
-            }
-        )
-
-        return artifact_id
 
     def _persist_task_callback(self, output) -> None:
-        """Non-blocking task-level persistence via CrewAI task_callback.
+        """Task-level persistence via CrewAI task_callback.
 
-        Pass this as `task_callback` on Crew to record each task output
-        as an auditable artifact without blocking the next task.
+        This is the only CrewAI-specific method — it reads ``output.pydantic``
+        and ``output.raw`` from CrewAI's TaskOutput object.
+
+        Two phases:
+        1. **Synchronous** — resolve the effective forwarding policy via
+           ``ForwardingEnforcer.resolve()``, rewrite ``output.raw`` via
+           ``ForwardingEnforcer.filter_output()`` for Semantic-Forward.
+           Also extends the flow-level builder and PROV graph.
+        2. **Async** — persist the full envelope + PROV to the backend
+           API in a background thread.
+
+        For Raw-Forward, ``output.raw`` is left untouched.
         """
-        def _do_persist():
-            desc = getattr(output, "description", "task")[:30].replace(" ", "_")
-            raw = getattr(output, "raw", str(output))
-            agent_name = getattr(output, "agent", "unknown")
+        from jhcontext.models import Envelope as EnvelopeModel
 
-            artifact_id = f"art-task-{desc}"
-            content = raw.encode("utf-8")
-            content_hash = compute_sha256(content)
+        pydantic_out = getattr(output, "pydantic", None)
+        raw = getattr(output, "raw", str(output))
+        agent_name = getattr(output, "agent", "unknown")
+        now = datetime.now(timezone.utc).isoformat()
 
-            builder: EnvelopeBuilder = self.state["_builder"]
-            builder.add_artifact(
-                artifact_id=artifact_id,
-                artifact_type=ArtifactType.TOKEN_SEQUENCE,
-                content_hash=content_hash,
-            )
-
-            prov: PROVGraph = self.state["_prov"]
-            prov.add_entity(
-                artifact_id,
-                f"Task output: {desc}",
-                artifact_type="token_sequence",
-                content_hash=content_hash,
-            )
-
-        threading.Thread(target=_do_persist, daemon=True).start()
-
-    def _get_latest_context(self) -> dict[str, Any]:
-        """Call at start of each step — retrieves latest envelope from API."""
+        builder: EnvelopeBuilder = self.state["_builder"]
+        prov: PROVGraph = self.state["_prov"]
         client: JHContextClient = self.state["_api_client"]
         context_id: str = self.state["_context_id"]
-        return client.get_envelope(context_id)
+        enforcer: ForwardingEnforcer = self.state["_enforcer"]
+        persister: StepPersister = self.state["_persister"]
+        prev_artifacts = list(persister.step_artifacts)
+
+        # --- Full Envelope path ---
+        if isinstance(pydantic_out, EnvelopeModel):
+            env: EnvelopeModel = pydantic_out
+
+            # Per-task policy with monotonic enforcement (SDK)
+            policy = enforcer.resolve(env)
+
+            step_name = "task"
+            if env.artifacts_registry:
+                step_name = env.artifacts_registry[-1].artifact_id.removeprefix("art-")
+            elif env.scope:
+                step_name = env.scope.split("_")[-1]
+
+            payload_bytes = str(env.semantic_payload).encode("utf-8")
+            content_hash = compute_sha256(payload_bytes)
+
+            artifact_id = f"art-{step_name}"
+            artifact_type = ArtifactType.SEMANTIC_EXTRACTION
+            if env.artifacts_registry:
+                last_art = env.artifacts_registry[-1]
+                artifact_id = last_art.artifact_id
+                artifact_type = last_art.type
+                last_art.content_hash = content_hash
+
+            agent_id = env.producer or f"did:agent:{agent_name}"
+
+            # ── Phase 1 (sync): rewrite output.raw + extend state ──
+
+            # Structural enforcement: filter output based on resolved policy (SDK)
+            output.raw = enforcer.filter_output(env, policy)
+
+            builder.add_artifact(
+                artifact_id=artifact_id,
+                artifact_type=artifact_type,
+                content_hash=content_hash,
+            )
+            builder.set_passed_artifact(artifact_id)
+
+            prov.add_agent(agent_id, agent_id, role=step_name)
+            prov.add_entity(
+                artifact_id,
+                f"Task output: {step_name}",
+                artifact_type=artifact_type.value,
+                content_hash=content_hash,
+            )
+            activity_id = f"act-{step_name}"
+            prov.add_activity(activity_id, step_name, started_at=now, ended_at=now)
+            prov.was_generated_by(artifact_id, activity_id)
+            prov.was_associated_with(activity_id, agent_id)
+
+            if prev_artifacts:
+                prev = prev_artifacts[-1]
+                prov.used(activity_id, prev)
+                prov.was_derived_from(artifact_id, prev)
+
+            for di in env.decision_influence:
+                builder.add_decision_influence(
+                    agent=di.agent,
+                    categories=di.categories,
+                    influence_weights=di.influence_weights,
+                )
+
+            persister.step_artifacts.append(artifact_id)
+            persister.metrics.append(
+                {
+                    "step": step_name,
+                    "agent": agent_id,
+                    "artifact_id": artifact_id,
+                    "content_size_bytes": len(payload_bytes),
+                    "persist_ms": 0,
+                    "started_at": now,
+                    "ended_at": now,
+                }
+            )
+
+            # ── Phase 2 (async): persist full envelope to backend ──
+            def _do_persist_envelope():
+                signed_env = builder.sign(agent_id).build()
+                client.submit_envelope(signed_env)
+                client.submit_prov_graph(context_id, prov.serialize("turtle"))
+
+            threading.Thread(target=_do_persist_envelope, daemon=True).start()
+            return
+
+        # --- Fallback: lightweight artifact-only persistence ---
+        desc = getattr(output, "description", "task")[:30].replace(" ", "_")
+        artifact_id = f"art-task-{desc}"
+        content = raw.encode("utf-8")
+        content_hash = compute_sha256(content)
+
+        builder.add_artifact(
+            artifact_id=artifact_id,
+            artifact_type=ArtifactType.TOKEN_SEQUENCE,
+            content_hash=content_hash,
+        )
+
+        prov.add_entity(
+            artifact_id,
+            f"Task output: {desc}",
+            artifact_type="token_sequence",
+            content_hash=content_hash,
+        )
+
+        persister.step_artifacts.append(artifact_id)
+
+    def _get_latest_context(self) -> dict[str, Any]:
+        """Retrieve latest envelope from API."""
+        client: JHContextClient = self.state["_api_client"]
+        return client.get_envelope(self.state["_context_id"])
 
     def _log_decision(
         self,
@@ -211,23 +273,19 @@ class ContextMixin:
     ) -> str:
         """Log a decision via the API."""
         client: JHContextClient = self.state["_api_client"]
-        context_id: str = self.state["_context_id"]
-        artifacts = self.state.get("_step_artifacts", [])
-        passed = artifacts[-1] if artifacts else None
+        persister: StepPersister = self.state["_persister"]
+        passed = persister.step_artifacts[-1] if persister.step_artifacts else None
         return client.log_decision(
-            context_id=context_id,
+            context_id=self.state["_context_id"],
             passed_artifact_id=passed,
             outcome=outcome,
             agent_id=agent_id,
         )
 
     def _finalize_metrics(self) -> dict[str, Any]:
-        """Call at end of flow to collect timing metrics."""
-        metrics = self.state["_metrics"]
-        metrics["total_ms"] = round((time.time() - metrics["total_start"]) * 1000, 2)
-        metrics.pop("total_start", None)
-        metrics["context_id"] = self.state["_context_id"]
-        return metrics
+        """Collect timing metrics — delegates to SDK StepPersister."""
+        persister: StepPersister = self.state["_persister"]
+        return persister.finalize_metrics(self.state["_total_start"])
 
     def _cleanup(self) -> None:
         """Close API client."""

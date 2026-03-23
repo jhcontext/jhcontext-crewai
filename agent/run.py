@@ -3,13 +3,13 @@
 Usage:
     python -m agent.run --scenario healthcare
     python -m agent.run --scenario education
+    python -m agent.run --scenario recommendation
     python -m agent.run --scenario all
 """
 
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -17,11 +17,18 @@ OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
 
 def run_healthcare():
-    """Run the healthcare human oversight scenario (Article 14)."""
+    """Run the healthcare human oversight scenario (Article 14).
+
+    Demonstrates Semantic-Forward task chaining: a multi-task clinical
+    crew (sensor → situation → decision) where each task outputs a full
+    jhcontext Envelope and subsequent tasks consume ``semantic_payload``
+    as canonical input.
+    """
     from agent.flows.healthcare_flow import HealthcareFlow
 
     print("=" * 60)
     print("SCENARIO: Healthcare Human Oversight (EU AI Act Art. 14)")
+    print("  Pattern: Semantic-Forward | Risk: HIGH")
     print("=" * 60)
 
     flow = HealthcareFlow()
@@ -49,6 +56,7 @@ def run_education():
 
     print("=" * 60)
     print("SCENARIO: Education Fair Assessment (EU AI Act Art. 13)")
+    print("  Pattern: Workflow Isolation | Risk: HIGH")
     print("=" * 60)
 
     print("\n--- Grading Workflow ---")
@@ -69,11 +77,35 @@ def run_education():
     return result
 
 
+def run_recommendation():
+    """Run the product recommendation scenario (LOW-risk).
+
+    Demonstrates Raw-Forward task chaining: a single crew with 3 tasks
+    (profile → search → personalize) where agents consume raw aggregated
+    context rather than reading from ``semantic_payload``. No oversight
+    or audit crews required for LOW-risk scenarios.
+    """
+    from agent.flows.recommendation_flow import RecommendationFlow
+
+    print("=" * 60)
+    print("SCENARIO: Product Recommendation (LOW-risk)")
+    print("  Pattern: Raw-Forward | Risk: LOW")
+    print("=" * 60)
+
+    flow = RecommendationFlow()
+    result = flow.kickoff()
+
+    print("\n" + "=" * 60)
+    print("Recommendation scenario complete.")
+    print(f"Outputs in: {OUTPUT_DIR}/recommendation_*")
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description="Run jhcontext-aws agent scenarios")
     parser.add_argument(
         "--scenario",
-        choices=["healthcare", "education", "all"],
+        choices=["healthcare", "education", "recommendation", "all"],
         default="all",
         help="Which scenario to run (default: all)",
     )
@@ -86,6 +118,9 @@ def main():
 
     if args.scenario in ("education", "all"):
         run_education()
+
+    if args.scenario in ("recommendation", "all"):
+        run_recommendation()
 
     # Print summary
     print("\n" + "=" * 60)
