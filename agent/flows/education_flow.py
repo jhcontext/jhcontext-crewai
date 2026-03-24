@@ -95,7 +95,14 @@ class EducationGradingFlow(Flow, ContextMixin):
         context_id = self.state["_context_id"]
         client = self.state["_api_client"]
 
-        envelope = client.get_envelope(context_id)
+        builder = self.state["_builder"]
+        try:
+            envelope = client.get_envelope(context_id)
+        except Exception:
+            envelope = None
+        if envelope is None:
+            envelope = builder.sign("did:university:grading-system").build()
+            envelope = envelope.to_jsonld()
         (OUTPUT_DIR / "education_grading_envelope.json").write_text(
             json.dumps(envelope, indent=2)
         )
@@ -186,8 +193,11 @@ class EducationAuditFlow(Flow):
             print("[Education/Audit] ERROR: Run grading and equity flows first.")
             return {"error": "Missing PROV graphs"}
 
-        # Use jhcontext audit to verify isolation
-        from jhcontext.audit import verify_workflow_isolation
+        # Use jhcontext audit to verify isolation + negative proof
+        from jhcontext.audit import (
+            verify_negative_proof,
+            verify_workflow_isolation,
+        )
 
         prov_a = PROVGraph(context_id="grading")
         prov_a._graph.parse(data=grading_prov_path.read_text(), format="turtle")
@@ -195,7 +205,18 @@ class EducationAuditFlow(Flow):
         prov_b = PROVGraph(context_id="equity")
         prov_b._graph.parse(data=equity_prov_path.read_text(), format="turtle")
 
+        # SDK audit: workflow isolation (zero shared artifacts)
         isolation_result = verify_workflow_isolation(prov_a, prov_b)
+
+        # SDK audit: negative proof (identity artifacts absent from grading)
+        negative_result = verify_negative_proof(
+            prov=prov_a,
+            decision_entity_id="art-grading",
+            excluded_artifact_types=["identity_data", "demographic", "biometric"],
+        )
+
+        print(f"[Education/Audit] Workflow isolation: {'PASS' if isolation_result.passed else 'FAIL'}")
+        print(f"[Education/Audit] Negative proof: {'PASS' if negative_result.passed else 'FAIL'}")
 
         # Run CrewAI audit agent for narrative report
         t0 = datetime.now(timezone.utc)
@@ -203,6 +224,8 @@ class EducationAuditFlow(Flow):
             inputs={
                 "isolation_passed": str(isolation_result.passed),
                 "isolation_evidence": json.dumps(isolation_result.evidence),
+                "negative_proof_passed": str(negative_result.passed),
+                "negative_proof_evidence": json.dumps(negative_result.evidence),
             }
         )
         t1 = datetime.now(timezone.utc)
@@ -213,11 +236,17 @@ class EducationAuditFlow(Flow):
                 "evidence": isolation_result.evidence,
                 "message": isolation_result.message,
             },
+            "negative_proof": {
+                "passed": negative_result.passed,
+                "evidence": negative_result.evidence,
+                "message": negative_result.message,
+            },
             "audit_narrative": result.raw,
             "verified_at": t1.isoformat(),
+            "overall_passed": isolation_result.passed and negative_result.passed,
         }
 
         (OUTPUT_DIR / "education_audit.json").write_text(json.dumps(report, indent=2))
-        print(f"[Education/Audit] Isolation: {'PASSED' if isolation_result.passed else 'FAILED'}")
+        print(f"[Education/Audit] Overall: {'PASSED' if report['overall_passed'] else 'FAILED'}")
         print(f"[Education/Audit] Report saved to {OUTPUT_DIR}/education_audit.json")
         return report

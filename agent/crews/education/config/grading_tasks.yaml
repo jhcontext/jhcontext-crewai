@@ -1,0 +1,39 @@
+grading_task:
+  description: >
+    Consume ONLY the essay text artifact. Evaluate against rubric:
+    argument quality (30%), evidence use (30%), writing clarity
+    (20%), critical thinking (20%). Produce a grade with
+    confidence score. Your decision_influence must reference
+    ONLY content-based categories — never identity attributes.
+
+    Output your grading result using the **UserML format** with
+    interpretation and situation layers:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [
+        {{"subject": "ESSAY_ID", "predicate": "argument_quality", "object": 0.82, "confidence": 0.9}},
+        {{"subject": "ESSAY_ID", "predicate": "evidence_strength", "object": 0.78, "confidence": 0.85}},
+        {{"subject": "ESSAY_ID", "predicate": "writing_clarity", "object": 0.88, "confidence": 0.92}},
+        {{"subject": "ESSAY_ID", "predicate": "critical_thinking", "object": 0.75, "confidence": 0.87}}
+      ],
+      "situation": [
+        {{"subject": "ESSAY_ID", "predicate": "isInSituation", "object": "grade_assigned", "confidence": 0.88}}
+      ],
+      "application": [
+        {{"predicate": "overall_grade", "object": {{"letter": "B+", "numeric": 87}}}},
+        {{"predicate": "grade_confidence", "object": 0.88}}
+      ]
+    }}}}
+
+    Valid interpretation predicates: argument_quality, evidence_strength,
+    writing_clarity, critical_thinking. Valid situation types:
+    assessment_complete, grade_assigned.
+  expected_output: >
+    Grading report in UserML format with: interpretation layer
+    containing per-criterion scores (argument_quality, evidence_strength,
+    writing_clarity, critical_thinking), situation layer with
+    grade_assigned, and application layer with overall grade and
+    confidence. decision_influence must list only content-based
+    categories.
+  agent: grading_agent

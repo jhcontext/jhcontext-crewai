@@ -1,0 +1,28 @@
+ingestion_task:
+  description: >
+    Receive essay submission from student {student_id}.
+    Separate: (a) essay text content ({essay_topic}, {word_count} words),
+    (b) identity data (name, student ID, demographic attributes).
+    Create a structured output with essay text as the primary
+    artifact and identity data clearly marked as separate.
+    The essay text output must contain ZERO identity references.
+
+    Output the essay content metrics using the **UserML format** in
+    your response (observation layer only):
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [
+        {{"subject": "essay-{student_id}", "predicate": "word_count", "object": {word_count}}},
+        {{"subject": "essay-{student_id}", "predicate": "structural_element", "object": "introduction"}},
+        {{"subject": "essay-{student_id}", "predicate": "citation_count", "object": 0}}
+      ]
+    }}}}
+
+    Valid observation predicates: rubric_score, word_count, citation_count,
+    structural_element.
+  expected_output: >
+    Two clearly separated outputs: (1) anonymized essay text
+    content with UserML observation-layer metadata (word_count,
+    structural_elements, citation_count), (2) identity data package
+    marked as access-controlled. Both with content hashes.
+  agent: ingestion_agent

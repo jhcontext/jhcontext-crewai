@@ -5,25 +5,136 @@ Usage:
     python -m agent.run --scenario education
     python -m agent.run --scenario recommendation
     python -m agent.run --scenario all
+    python -m agent.run --local --scenario healthcare
+    python -m agent.run --validate
 """
 
 from __future__ import annotations
 
 import argparse
+import os
+import subprocess
 import sys
+import time
+from contextlib import contextmanager
 from pathlib import Path
 
 OUTPUT_DIR = Path(__file__).parent.parent / "output"
+LOCAL_PORT = 8400
+LOCAL_URL = f"http://localhost:{LOCAL_PORT}"
 
+
+def _load_dotenv():
+    """Load .env file from project root if it exists."""
+    env_path = Path(__file__).parent.parent / ".env"
+    if not env_path.exists():
+        return
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        # Don't override existing env vars
+        if key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv()
+
+
+# ── Local server lifecycle ───────────────────────────────────────
+
+@contextmanager
+def local_server():
+    """Start a local jhcontext server (SQLite) and yield when ready.
+
+    Tries ``chalice local`` first (tests actual Chalice routes with SQLite).
+    Falls back to the SDK's FastAPI server if Chalice is not installed.
+    """
+    import httpx
+
+    os.environ["JHCONTEXT_API_URL"] = LOCAL_URL
+
+    # Try chalice local first (tests the actual Chalice API with SQLite)
+    api_dir = Path(__file__).parent.parent / "api"
+    proc = None
+    server_type = None
+
+    try:
+        proc = subprocess.Popen(
+            ["chalice", "local", "--port", str(LOCAL_PORT), "--no-autoreload"],
+            cwd=str(api_dir),
+            env={**os.environ, "JHCONTEXT_LOCAL": "1"},
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+        )
+        server_type = "Chalice local (SQLite)"
+    except FileNotFoundError:
+        pass
+
+    if proc is None:
+        # Fall back to SDK FastAPI server
+        try:
+            proc = subprocess.Popen(
+                [
+                    sys.executable, "-m", "uvicorn",
+                    "jhcontext.server.app:create_app",
+                    "--factory", "--port", str(LOCAL_PORT),
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.PIPE,
+            )
+            server_type = "SDK server (SQLite)"
+        except FileNotFoundError:
+            print("ERROR: Neither 'chalice' nor 'uvicorn' found.")
+            print("Install uvicorn: pip install uvicorn>=0.30")
+            sys.exit(1)
+
+    print(f"Starting local server ({server_type}) on port {LOCAL_PORT}...")
+
+    # Wait for server readiness
+    ready = False
+    for _ in range(20):
+        if proc.poll() is not None:
+            stderr = proc.stderr.read().decode() if proc.stderr else ""
+            print(f"ERROR: Local server exited unexpectedly.\n{stderr}")
+            sys.exit(1)
+        try:
+            resp = httpx.get(f"{LOCAL_URL}/health", timeout=1.0)
+            if resp.status_code == 200:
+                ready = True
+                break
+        except httpx.ConnectError:
+            pass
+        time.sleep(0.5)
+
+    if not ready:
+        proc.terminate()
+        proc.wait(timeout=5)
+        print("ERROR: Local server failed to start within 10 seconds.")
+        sys.exit(1)
+
+    print(f"Local server ready ({server_type}).\n")
+
+    try:
+        yield proc
+    finally:
+        proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+        print("\nLocal server stopped.")
+
+
+# ── Scenario runners ─────────────────────────────────────────────
 
 def run_healthcare():
-    """Run the healthcare human oversight scenario (Article 14).
-
-    Demonstrates Semantic-Forward task chaining: a multi-task clinical
-    crew (sensor → situation → decision) where each task outputs a full
-    jhcontext Envelope and subsequent tasks consume ``semantic_payload``
-    as canonical input.
-    """
+    """Run the healthcare human oversight scenario (Article 14)."""
     from agent.flows.healthcare_flow import HealthcareFlow
 
     print("=" * 60)
@@ -41,13 +152,7 @@ def run_healthcare():
 
 
 def run_education():
-    """Run the education fair assessment scenario (Article 13).
-
-    Runs three sub-flows:
-    1. Grading workflow (identity-free)
-    2. Equity reporting workflow (isolated)
-    3. Audit workflow (verifies isolation)
-    """
+    """Run the education fair assessment scenario (Article 13)."""
     from agent.flows.education_flow import (
         EducationAuditFlow,
         EducationEquityFlow,
@@ -78,13 +183,7 @@ def run_education():
 
 
 def run_recommendation():
-    """Run the product recommendation scenario (LOW-risk).
-
-    Demonstrates Raw-Forward task chaining: a single crew with 3 tasks
-    (profile → search → personalize) where agents consume raw aggregated
-    context rather than reading from ``semantic_payload``. No oversight
-    or audit crews required for LOW-risk scenarios.
-    """
+    """Run the product recommendation scenario (LOW-risk)."""
     from agent.flows.recommendation_flow import RecommendationFlow
 
     print("=" * 60)
@@ -101,16 +200,8 @@ def run_recommendation():
     return result
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Run jhcontext-aws agent scenarios")
-    parser.add_argument(
-        "--scenario",
-        choices=["healthcare", "education", "recommendation", "all"],
-        default="all",
-        help="Which scenario to run (default: all)",
-    )
-    args = parser.parse_args()
-
+def _run_scenarios(args):
+    """Dispatch scenario execution based on parsed args."""
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     if args.scenario in ("healthcare", "all"):
@@ -130,6 +221,40 @@ def main():
     for f in output_files:
         size = f.stat().st_size
         print(f"  {f.name:45s} {size:>8,d} bytes")
+
+
+# ── Main ─────────────────────────────────────────────────────────
+
+def main():
+    parser = argparse.ArgumentParser(description="Run jhcontext-aws agent scenarios")
+    parser.add_argument(
+        "--scenario",
+        choices=["healthcare", "education", "recommendation", "all"],
+        default="all",
+        help="Which scenario to run (default: all)",
+    )
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help="Auto-start a local jhcontext server (SQLite backend)",
+    )
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Run post-execution validation on output/ files",
+    )
+    args = parser.parse_args()
+
+    if args.validate:
+        from agent.validate import run_validation
+
+        sys.exit(run_validation())
+
+    if args.local:
+        with local_server():
+            _run_scenarios(args)
+    else:
+        _run_scenarios(args)
 
 
 if __name__ == "__main__":

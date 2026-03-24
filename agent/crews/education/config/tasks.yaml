@@ -6,11 +6,25 @@ ingestion_task:
     Create a structured output with essay text as the primary
     artifact and identity data clearly marked as separate.
     The essay text output must contain ZERO identity references.
+
+    Output the essay content metrics using the **UserML format** in
+    your response (observation layer only):
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [
+        {{"subject": "essay-{student_id}", "predicate": "word_count", "object": {word_count}}},
+        {{"subject": "essay-{student_id}", "predicate": "structural_element", "object": "introduction"}},
+        {{"subject": "essay-{student_id}", "predicate": "citation_count", "object": 0}}
+      ]
+    }}}}
+
+    Valid observation predicates: rubric_score, word_count, citation_count,
+    structural_element.
   expected_output: >
     Two clearly separated outputs: (1) anonymized essay text
-    content with word count and topic metadata, (2) identity
-    data package marked as access-controlled. Both with
-    content hashes.
+    content with UserML observation-layer metadata (word_count,
+    structural_elements, citation_count), (2) identity data package
+    marked as access-controlled. Both with content hashes.
   agent: ingestion_agent
 
 grading_task:
@@ -20,12 +34,37 @@ grading_task:
     (20%), critical thinking (20%). Produce a grade with
     confidence score. Your decision_influence must reference
     ONLY content-based categories — never identity attributes.
+
+    Output your grading result using the **UserML format** with
+    interpretation and situation layers:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [
+        {{"subject": "ESSAY_ID", "predicate": "argument_quality", "object": 0.82, "confidence": 0.9}},
+        {{"subject": "ESSAY_ID", "predicate": "evidence_strength", "object": 0.78, "confidence": 0.85}},
+        {{"subject": "ESSAY_ID", "predicate": "writing_clarity", "object": 0.88, "confidence": 0.92}},
+        {{"subject": "ESSAY_ID", "predicate": "critical_thinking", "object": 0.75, "confidence": 0.87}}
+      ],
+      "situation": [
+        {{"subject": "ESSAY_ID", "predicate": "isInSituation", "object": "grade_assigned", "confidence": 0.88}}
+      ],
+      "application": [
+        {{"predicate": "overall_grade", "object": {{"letter": "B+", "numeric": 87}}}},
+        {{"predicate": "grade_confidence", "object": 0.88}}
+      ]
+    }}}}
+
+    Valid interpretation predicates: argument_quality, evidence_strength,
+    writing_clarity, critical_thinking. Valid situation types:
+    assessment_complete, grade_assigned.
   expected_output: >
-    Grading report with: overall grade (letter + numeric),
-    confidence score, per-criterion scores, justification text,
-    and decision_influence metadata listing only content-based
-    categories (argument_quality, evidence_use, writing_clarity,
-    critical_thinking).
+    Grading report in UserML format with: interpretation layer
+    containing per-criterion scores (argument_quality, evidence_strength,
+    writing_clarity, critical_thinking), situation layer with
+    grade_assigned, and application layer with overall grade and
+    confidence. decision_influence must list only content-based
+    categories.
   agent: grading_agent
 
 equity_task:

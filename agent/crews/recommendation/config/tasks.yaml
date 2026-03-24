@@ -6,7 +6,24 @@ profile_task:
     recent search terms, and seasonal patterns.
 
     Output a jhcontext protocol envelope. Place the user preference
-    profile in ``semantic_payload`` as a list of observation dicts.
+    profile in ``semantic_payload`` using the **UserML format**:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [
+        {{"subject": "{user_id}", "predicate": "browse_event", "object": {{"category": "electronics", "item": "wireless headphones"}}}},
+        {{"subject": "{user_id}", "predicate": "purchase_event", "object": {{"category": "electronics", "item": "USB-C cable", "price": 12.99}}}},
+        {{"subject": "{user_id}", "predicate": "price_preference", "object": {{"min": 20, "max": 150, "currency": "USD"}}}}
+      ],
+      "interpretation": [
+        {{"subject": "{user_id}", "predicate": "category_affinity", "object": {{"category": "electronics", "score": 0.92}}, "confidence": 0.92}},
+        {{"subject": "{user_id}", "predicate": "price_sensitivity", "object": "medium", "confidence": 0.85}}
+      ]
+    }}}}
+
+    Valid observation predicates: browse_event, purchase_event,
+    search_query, price_preference. Valid interpretation predicates:
+    category_affinity, brand_preference, price_sensitivity, seasonal_pattern.
+
     Register one artifact in ``artifacts_registry`` with
     artifact_id="art-profile" and type="semantic_extraction".
     Set scope="product_recommendation",
@@ -14,10 +31,10 @@ profile_task:
     compliance.risk_level="low", compliance.human_oversight_required=false,
     compliance.forwarding_policy="raw_forward".
   expected_output: >
-    A jhcontext Envelope JSON with semantic_payload containing a user
-    preference profile (categories, price range, brands, interests),
-    one SEMANTIC_EXTRACTION artifact, and compliance block set to low risk
-    with forwarding_policy=raw_forward.
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing observation and interpretation layers with valid
+    recommendation predicates, one SEMANTIC_EXTRACTION artifact, and
+    compliance block set to low risk with forwarding_policy=raw_forward.
   agent: profile_agent
 
 search_task:
@@ -28,16 +45,29 @@ search_task:
     Return top 10 candidates with relevance scores.
 
     Output a jhcontext protocol envelope. Place the ranked product
-    candidates in ``semantic_payload``. Register one artifact with
-    artifact_id="art-search" and type="semantic_extraction".
+    candidates in ``semantic_payload`` using the **UserML format**
+    with interpretation layer for product-to-preference matching:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [
+        {{"subject": "product-001", "predicate": "category_affinity", "object": {{"match_score": 0.95, "product": "Sony WH-1000XM5"}}, "confidence": 0.93}}
+      ],
+      "situation": [
+        {{"subject": "USER_ID", "predicate": "isInSituation", "object": "active_shopper", "confidence": 0.88}}
+      ]
+    }}}}
+
+    Register one artifact with artifact_id="art-search" and
+    type="semantic_extraction".
     Set scope="product_recommendation",
     producer="did:ecommerce:search-agent",
     compliance.risk_level="low", compliance.human_oversight_required=false,
     compliance.forwarding_policy="raw_forward".
   expected_output: >
-    A jhcontext Envelope JSON with semantic_payload containing 10
-    ranked product candidates (name, price, relevance score, match
-    explanation), one SEMANTIC_EXTRACTION artifact, and low-risk
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing 10 ranked product candidates with interpretation-layer
+    match scores, one SEMANTIC_EXTRACTION artifact, and low-risk
     compliance block.
   agent: search_agent
 
@@ -49,8 +79,24 @@ personalize_task:
     a confidence score (0-1).
 
     Output a jhcontext protocol envelope. Place the final recommendations
-    in ``semantic_payload``. Register one artifact with
-    artifact_id="art-personalize" and type="semantic_extraction".
+    in ``semantic_payload`` using the **UserML format** with application layer:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [],
+      "situation": [],
+      "application": [
+        {{"predicate": "recommended_product", "object": {{"name": "Sony WH-1000XM5", "price": 129.99, "confidence": 0.91}}}},
+        {{"predicate": "personalization_explanation", "object": "Matches electronics affinity and price range"}},
+        {{"predicate": "recommendation_confidence", "object": 0.91}}
+      ]
+    }}}}
+
+    Valid application predicates: recommended_product,
+    recommendation_confidence, personalization_explanation.
+
+    Register one artifact with artifact_id="art-personalize" and
+    type="semantic_extraction".
     Set scope="product_recommendation",
     producer="did:ecommerce:personalize-agent",
     compliance.risk_level="low", compliance.human_oversight_required=false,
@@ -58,8 +104,8 @@ personalize_task:
     Include decision_influence with categories like "user_preferences",
     "product_relevance", "price_fit" and influence_weights.
   expected_output: >
-    A jhcontext Envelope JSON with semantic_payload containing 3
-    personalized product recommendations (name, price, explanation,
-    confidence), one SEMANTIC_EXTRACTION artifact, low-risk compliance,
-    and decision_influence metadata.
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing 3 personalized product recommendations in the application
+    layer, one SEMANTIC_EXTRACTION artifact, low-risk compliance, and
+    decision_influence metadata.
   agent: personalize_agent

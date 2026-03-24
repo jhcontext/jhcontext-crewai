@@ -79,8 +79,15 @@ class RecommendationFlow(Flow, ContextMixin):
         context_id = self.state["_context_id"]
         client = self.state["_api_client"]
 
-        # Envelope
-        envelope = client.get_envelope(context_id)
+        # Envelope — try backend first, fall back to building locally
+        builder = self.state["_builder"]
+        try:
+            envelope = client.get_envelope(context_id)
+        except Exception:
+            envelope = None
+        if envelope is None:
+            envelope = builder.sign("did:ecommerce:rec-system").build()
+            envelope = envelope.to_jsonld()
         (OUTPUT_DIR / "recommendation_envelope.json").write_text(
             json.dumps(envelope, indent=2)
         )

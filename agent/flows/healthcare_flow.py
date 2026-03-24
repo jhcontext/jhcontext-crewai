@@ -8,11 +8,15 @@ and subsequent tasks consume the ``semantic_payload`` field as canonical input.
 
 Task-level persistence happens in parallel via ``_persist_task_callback`` —
 each task's Envelope is signed and POSTed to the backend while the next task runs.
+
+Physician oversight records 4 individual document-access activities in the PROV
+graph with real timestamps, enabling ``verify_temporal_oversight()`` validation.
 """
 
 from __future__ import annotations
 
 import json
+import time as _time
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -26,8 +30,22 @@ from agent.crews.healthcare.crew import (
 from agent.protocol.context_mixin import ContextMixin
 
 from jhcontext import ArtifactType, RiskLevel
+from jhcontext.audit import (
+    generate_audit_report,
+    verify_integrity,
+    verify_temporal_oversight,
+)
 
 OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+
+# Simulated document-access durations (seconds).
+# Production would use real physician interaction times.
+SOURCE_DOCUMENTS = [
+    ("act-access-ct-scan", "Access CT scan", "ent-ct-scan", "CT scan metadata", 4),
+    ("act-access-history", "Access treatment history", "ent-treatment-history", "Treatment history", 3),
+    ("act-access-pathology", "Access pathology report", "ent-pathology", "Pathology report", 2),
+    ("act-review-ai", "Review AI recommendation", "ent-ai-recommendation", "AI recommendation", 1),
+]
 
 
 class HealthcareFlow(Flow, ContextMixin):
@@ -80,29 +98,92 @@ class HealthcareFlow(Flow, ContextMixin):
 
     @listen(clinical_pipeline)
     def physician_oversight(self, decision_output):
-        """Step 4: Physician oversight (separate crew for regulatory isolation)."""
+        """Step 4: Physician oversight with fine-grained PROV events.
+
+        The flow code controls document-access timing to produce reliable
+        PROV activities. The LLM oversight crew produces the narrative
+        review/override decision.
+        """
         print("[Healthcare] Step 4/5: Physician oversight...")
-        t0 = datetime.now(timezone.utc)
+
+        # ── Code-controlled document access with real timestamps ──
+        oversight_events = []
+        overall_t0 = datetime.now(timezone.utc)
+
+        for event_id, label, entity_id, entity_label, duration in SOURCE_DOCUMENTS:
+            t0 = datetime.now(timezone.utc)
+            _time.sleep(duration)
+            t1 = datetime.now(timezone.utc)
+            oversight_events.append({
+                "event_id": event_id,
+                "label": label,
+                "started_at": t0.isoformat(),
+                "ended_at": t1.isoformat(),
+                "accessed_entity": entity_id,
+                "entity_label": entity_label,
+            })
+
+        # ── LLM crew produces the clinical narrative ──
         result = HealthcareOversightCrew().crew().kickoff(
             inputs={"recommendation": decision_output}
         )
-        t1 = datetime.now(timezone.utc)
+        overall_t1 = datetime.now(timezone.utc)
 
-        self._persist_step(
-            step_name="oversight",
-            agent_id="did:hospital:dr-chen",
-            output=result.raw,
-            artifact_type=ArtifactType.SEMANTIC_EXTRACTION,
-            started_at=t0.isoformat(),
-            ended_at=t1.isoformat(),
-            used_artifacts=["art-decision", "art-sensor"],
+        # ── Persist fine-grained oversight events to PROV graph ──
+        self._persist_oversight_events(
+            events=oversight_events,
+            oversight_agent_id="did:hospital:dr-chen",
+            summary_output=result.raw,
+            overall_started_at=overall_t0.isoformat(),
+            overall_ended_at=overall_t1.isoformat(),
         )
+
+        # Parse alternatives from LLM output for decision graph
+        try:
+            oversight_json = json.loads(result.raw)
+            alternatives = oversight_json.get("alternatives_considered", [])
+            if alternatives:
+                self._log_decision(
+                    outcome={
+                        "decision": oversight_json.get("decision", "unknown"),
+                        "justification": oversight_json.get("justification", ""),
+                    },
+                    agent_id="did:hospital:dr-chen",
+                    alternatives=alternatives,
+                )
+        except (json.JSONDecodeError, AttributeError):
+            pass
+
         return result.raw
 
     @listen(physician_oversight)
     def compliance_audit(self, oversight_output):
-        """Step 5: Compliance audit (separate crew for regulatory isolation)."""
+        """Step 5: Programmatic + narrative compliance audit."""
         print("[Healthcare] Step 5/5: Compliance audit...")
+
+        prov = self.state["_prov"]
+        builder = self.state["_builder"]
+
+        # ── Programmatic SDK audit ──
+        human_activities = [e[0] for e in SOURCE_DOCUMENTS]
+        temporal_result = verify_temporal_oversight(
+            prov=prov,
+            ai_activity_id="act-decision",
+            human_activities=human_activities,
+            min_review_seconds=5.0,  # simulated (real: 300.0)
+        )
+
+        env = builder.sign("did:hospital:audit-agent").build()
+        integrity_result = verify_integrity(env)
+
+        programmatic_report = generate_audit_report(
+            env, prov, [temporal_result, integrity_result]
+        )
+
+        print(f"[Healthcare] Temporal oversight: {'PASS' if temporal_result.passed else 'FAIL'}")
+        print(f"[Healthcare] Integrity: {'PASS' if integrity_result.passed else 'FAIL'}")
+
+        # ── LLM narrative audit ──
         t0 = datetime.now(timezone.utc)
         result = HealthcareAuditCrew().crew().kickoff(
             inputs={
@@ -123,16 +204,23 @@ class HealthcareFlow(Flow, ContextMixin):
         )
 
         # Save outputs for paper evidence
-        self._save_outputs(result.raw)
+        self._save_outputs(result.raw, programmatic_report)
         return result.raw
 
-    def _save_outputs(self, audit_output: str):
+    def _save_outputs(self, audit_output: str, programmatic_report=None):
         """Save envelope, PROV, audit report, and metrics to output/."""
         context_id = self.state["_context_id"]
         client = self.state["_api_client"]
 
-        # Envelope
-        envelope = client.get_envelope(context_id)
+        # Envelope — try backend first, fall back to building locally
+        builder = self.state["_builder"]
+        try:
+            envelope = client.get_envelope(context_id)
+        except Exception:
+            envelope = None
+        if envelope is None:
+            envelope = builder.sign("did:hospital:system").build()
+            envelope = envelope.to_jsonld()
         (OUTPUT_DIR / "healthcare_envelope.json").write_text(
             json.dumps(envelope, indent=2)
         )
@@ -141,9 +229,15 @@ class HealthcareFlow(Flow, ContextMixin):
         prov_turtle = self.state["_prov"].serialize("turtle")
         (OUTPUT_DIR / "healthcare_prov.ttl").write_text(prov_turtle)
 
-        # Audit report
+        # Audit report — combined programmatic + narrative
+        audit_data = {
+            "context_id": context_id,
+            "programmatic_checks": programmatic_report.to_dict() if programmatic_report else {},
+            "narrative_audit": audit_output,
+            "overall_passed": programmatic_report.overall_passed if programmatic_report else None,
+        }
         (OUTPUT_DIR / "healthcare_audit.json").write_text(
-            json.dumps({"context_id": context_id, "audit_output": audit_output}, indent=2)
+            json.dumps(audit_data, indent=2)
         )
 
         # Metrics

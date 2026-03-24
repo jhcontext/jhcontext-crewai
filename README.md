@@ -693,20 +693,268 @@ The agent collects timing metrics automatically via `ContextMixin._finalize_metr
 | DynamoDB vs SQLite latency | Compare with jhcontext-sdk local benchmarks | Side-by-side |
 | Lambda cold start overhead | CloudWatch Logs `INIT_START` duration | AWS console |
 
-## Local Development (Without AWS)
+## UserML Semantic Payloads
 
-For development without AWS, use the jhcontext-sdk's local server:
+Each scenario structures its `semantic_payload` using the UserML format — a layered
+ontology defined in the jhcontext SDK (`jhcontext.semantics`). Domain-specific predicates
+are defined in `agent/ontologies/`.
+
+### UserML Structure
+
+```json
+{
+  "@model": "UserML",
+  "layers": {
+    "observation": [{"subject": "...", "predicate": "...", "object": ...}],
+    "interpretation": [{"subject": "...", "predicate": "...", "object": ..., "confidence": 0.9}],
+    "situation": [{"subject": "...", "predicate": "isInSituation", "object": "...", "confidence": 0.9}],
+    "application": [{"predicate": "...", "object": ...}]
+  }
+}
+```
+
+### Domain Predicates
+
+| Layer | Healthcare | Education | Recommendation |
+|-------|-----------|-----------|----------------|
+| **Observation** | vital_sign, lab_result, imaging_finding, demographic, medication_history | rubric_score, word_count, citation_count, structural_element | browse_event, purchase_event, search_query, price_preference |
+| **Interpretation** | risk_assessment, clinical_pattern, treatment_response, biomarker_trend | argument_quality, evidence_strength, writing_clarity, critical_thinking | category_affinity, brand_preference, price_sensitivity, seasonal_pattern |
+| **Situation** | treatment_candidate, monitoring_required, acute_episode, stable_remission | assessment_complete, grade_assigned, review_pending | active_shopper, gift_buyer, repeat_customer |
+| **Application** | treatment_recommendation, oversight_required, confidence_score | overall_grade, grade_confidence, rubric_weights | recommended_product, recommendation_confidence, personalization_explanation |
+
+The `validate.py` script checks that LLM-generated payloads conform to these vocabularies.
+
+## PROV Graph Validation
+
+Each scenario produces a W3C PROV graph (Turtle format) that captures the causal history of
+every artifact: which agents performed which activities, using which inputs, to produce
+which outputs.
+
+### Healthcare PROV Structure (Article 14)
+
+The healthcare scenario records **fine-grained oversight events** — each document the
+physician accesses is a separate PROV activity with real timestamps:
+
+```
+act-sensor ──────────── agent: did:hospital:sensor-agent
+  └→ art-sensor (TOKEN_SEQUENCE)
+
+act-situation ──────── agent: did:hospital:situation-agent
+  ├→ used: art-sensor
+  └→ art-situation (SEMANTIC_EXTRACTION)
+
+act-decision ──────── agent: did:hospital:decision-agent
+  ├→ used: art-situation
+  └→ art-decision (SEMANTIC_EXTRACTION)
+
+act-access-ct-scan ── agent: did:hospital:dr-chen     ← 4s review
+act-access-history ── agent: did:hospital:dr-chen     ← 3s review
+act-access-pathology  agent: did:hospital:dr-chen     ← 2s review
+act-review-ai ─────── agent: did:hospital:dr-chen     ← 1s review
+
+act-oversight ──────── agent: did:hospital:dr-chen
+  ├→ used: ent-ct-scan, ent-treatment-history, ent-pathology, ent-ai-recommendation
+  └→ art-oversight (SEMANTIC_EXTRACTION)
+```
+
+This structure enables `verify_temporal_oversight()` to confirm:
+- All 4 human review activities occur AFTER the AI recommendation
+- Total review duration is meaningful (not rubber-stamping)
+
+### Education PROV Structure (Article 13)
+
+Two completely isolated subgraphs with zero shared entities:
+
+```
+Grading Workflow:                    Equity Workflow:
+  art-ingestion → art-grading          art-equity (separate context_id)
+  NO identity artifacts                NO grading artifacts
+```
+
+Validated by:
+- `verify_workflow_isolation(grading_prov, equity_prov)` — zero shared entities
+- `verify_negative_proof(grading_prov, "art-grading", ["identity_data", ...])` — identity absent
+
+### SDK Audit Functions → EU AI Act Mapping
+
+| Function | Article | Scenario | Verifies |
+|----------|---------|----------|----------|
+| `verify_temporal_oversight()` | Art. 14 | Healthcare | Physician reviewed source docs (not just AI summary) |
+| `verify_negative_proof()` | Art. 13 | Education | Identity data absent from grading chain |
+| `verify_workflow_isolation()` | Art. 13 | Education | Zero shared artifacts between workflows |
+| `verify_integrity()` | Art. 15 | All | Envelope hash + signature valid |
+| `verify_pii_detachment()` | GDPR | Optional | No PII remains in stored payload |
+
+## Protocol Validation
+
+After running scenarios, use `--validate` to produce a structured validation report
+matching the paper's tables.
+
+### Running Validation
 
 ```bash
-# Terminal 1: Start local jhcontext server (SQLite backend)
+# Step 1: Run all scenarios
+python -m agent.run --scenario all
+
+# Step 2: Validate outputs
+python -m agent.run --validate
+```
+
+### Expected Output
+
+```
+TABLE 1: Artifact Characteristics
+======================================================================
+Metric                              Healthcare  Education  Recommend
+----------------------------------------------------------------------
+Envelope size (bytes)                     ~5800      ~3600      ~4000
+PROV graph size (bytes)                   ~4900      ~1700      ~2000
+Entity count                                 10          2          3
+Activity count                               12          2          3
+Agent count                                   5          2          3
+
+TABLE 2: Audit Results
+======================================================================
+Check                          Healthcare    Education    Recommend
+----------------------------------------------------------------------
+temporal_oversight                   PASS          n/a          n/a
+integrity                            PASS         PASS         PASS
+workflow_isolation                    n/a         PASS          n/a
+negative_proof                        n/a         PASS          n/a
+semantic_conformance                 PASS         PASS         PASS
+```
+
+The full report is saved to `output/validation_report.json`.
+
+### Semantic Payload Conformance
+
+The validation script checks that each scenario's `semantic_payload` uses the UserML
+format with valid domain predicates from `agent/ontologies/`. This is a post-hoc check —
+if LLM agents produce non-conforming output, the validation will flag it.
+
+## Local Development (Without AWS)
+
+The entire project runs locally without AWS credentials, DynamoDB, S3, or Lambda.
+The agent communicates via HTTP — it doesn't care whether the backend is DynamoDB or
+SQLite. All you need is a local server.
+
+### Quick Start (single command)
+
+```bash
+cd jhcontext-aws
+python -m agent.run --local --scenario healthcare
+```
+
+This auto-starts a local server (SQLite backend), runs the scenario, saves outputs
+to `output/`, and shuts down the server when done. No second terminal needed.
+
+### How It Works
+
+```
+LOCAL MODE (--local):
+┌──────────────────────────────────────────────┐
+│ Local Server (auto-started subprocess)       │
+│  SQLiteStorage → ~/.jhcontext-aws/data.db    │
+│  Artifacts     → ~/.jhcontext-aws/artifacts/ │
+│  PII Vault     → ~/.jhcontext-aws/pii_vault.db │
+│  Listening on :8400                          │
+└───────────────────┬──────────────────────────┘
+                    │ HTTP (localhost:8400)
+┌───────────────────▼──────────────────────────┐
+│ Agent (same process/terminal)                │
+│  CrewAI Flows → JHContextClient(httpx)       │
+│  JHCONTEXT_API_URL=http://localhost:8400     │
+└──────────────────────────────────────────────┘
+
+AWS MODE (deployed):
+┌──────────────────────────────────────────────┐
+│ Lambda: Chalice API                          │
+│  DynamoDBStorage → jhcontext-* tables        │
+│  Artifacts       → S3 bucket                 │
+│  PII Vault       → jhcontext-pii-vault table │
+│  API Gateway :443                            │
+└───────────────────┬──────────────────────────┘
+                    │ HTTPS
+┌───────────────────▼──────────────────────────┐
+│ Agent (local or Lambda worker)               │
+│  JHCONTEXT_API_URL=https://{api-id}...       │
+└──────────────────────────────────────────────┘
+```
+
+The agent layer is **identical** in both modes — only the server backend differs.
+
+### Two Local Modes
+
+#### 1. `--local` flag (recommended for agent development)
+
+```bash
+python -m agent.run --local --scenario healthcare
+python -m agent.run --local --scenario all
+python -m agent.run --local --scenario all && python -m agent.run --validate
+```
+
+The `--local` flag:
+1. Tries `chalice local` first (if Chalice is installed) — uses the actual Chalice API routes with SQLite
+2. Falls back to the SDK's FastAPI server (via `uvicorn`) — same routes, same interface
+3. Polls `/health` until ready, runs your scenarios, terminates on exit
+
+#### 2. `JHCONTEXT_LOCAL=1 chalice local` (for API development)
+
+```bash
+cd jhcontext-aws/api
+JHCONTEXT_LOCAL=1 chalice local --port 8400
+```
+
+This starts the **actual Chalice API** with SQLite storage. Useful for:
+- Testing API routes directly with `curl`
+- Debugging route handler logic
+- Running the agent in a separate terminal against it:
+  ```bash
+  # Terminal 2:
+  export JHCONTEXT_API_URL=http://localhost:8400
+  python -m agent.run --scenario healthcare
+  ```
+
+#### 3. SDK server (manual, two terminals)
+
+```bash
+# Terminal 1:
 cd ~/Repos/jhcontext-sdk
 uvicorn jhcontext.server.app:create_app --factory --port 8400
 
-# Terminal 2: Run agent against local server
+# Terminal 2:
 cd ~/Repos/jhcontext-aws
 export JHCONTEXT_API_URL=http://localhost:8400
 python -m agent.run --scenario healthcare
 ```
+
+### Storage Backends
+
+| Mode | Envelopes | PII Vault | Artifacts | Config |
+|------|-----------|-----------|-----------|--------|
+| **AWS** (deployed) | DynamoDB | DynamoDB (separate table) | S3 | `.chalice/config.json` env vars |
+| **Chalice local** | SQLite `~/.jhcontext-aws/data.db` | SQLite `pii_vault.db` | Filesystem `~/.jhcontext-aws/artifacts/` | `JHCONTEXT_LOCAL=1` |
+| **SDK server** | SQLite `~/.jhcontext/data.db` | SQLite `pii_vault.db` | Filesystem `~/.jhcontext/artifacts/` | SDK defaults |
+
+Both SQLite backends implement the **exact same StorageBackend protocol** as DynamoDB —
+same 9 methods, same semantics, same return types.
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `JHCONTEXT_LOCAL` | _(unset)_ | Set to `1` to switch Chalice API to SQLite backend |
+| `JHCONTEXT_DATA_DIR` | `~/.jhcontext-aws` | Override data directory for Chalice local mode |
+| `JHCONTEXT_API_URL` | `http://localhost:8400` | API URL for the agent (set automatically by `--local`) |
+
+### Which Mode to Use?
+
+| Goal | Mode | Command |
+|------|------|---------|
+| **Run agent scenarios** | `--local` flag | `python -m agent.run --local --scenario healthcare` |
+| **Debug API routes** | Chalice local | `JHCONTEXT_LOCAL=1 chalice local --port 8400` |
+| **Full-stack debugging** | Two terminals | Chalice local + agent in separate terminals |
+| **Deploy to AWS** | `chalice deploy` | `cd api && chalice deploy` (uses DynamoDB) |
 
 ## License
 

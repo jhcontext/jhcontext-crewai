@@ -1,0 +1,15 @@
+audit_task:
+  description: >
+    Verify negative proof: identity artifacts must be absent
+    from the grading PROV dependency chain. Verify isolation:
+    equity reporting workflow must have no shared artifacts
+    with grading workflow. Check for implicit proxies
+    (writing style, vocabulary patterns that could correlate
+    with demographics). Produce structured audit report.
+  expected_output: >
+    Audit report with: (1) negative proof verification
+    (PASS/FAIL — identity absent from grading chain),
+    (2) workflow isolation verification (PASS/FAIL — zero
+    shared artifacts), (3) implicit proxy risk assessment,
+    (4) overall Article 13 compliance status.
+  agent: audit_agent

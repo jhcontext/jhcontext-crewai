@@ -13,3 +13,5 @@ api/.chalice/deployments/
 mcp/.chalice/deployed/
 mcp/.chalice/deployments/
 .pytest_cache/
+*.db
+.jhcontext-aws/

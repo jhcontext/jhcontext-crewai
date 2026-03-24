@@ -1,0 +1,23 @@
+oversight_task:
+  description: >
+    Simulate physician review of the AI treatment recommendation.
+
+    The flow will provide the recommendation text. As the physician,
+    review the AI recommendation and produce a structured JSON response
+    with the following fields:
+
+    1. ``decision``: either "approve" or "override"
+    2. ``justification``: clinical reasoning for the decision
+    3. ``alternatives_considered``: list of objects, each with
+       "treatment" (name) and "rationale" (why selected or rejected)
+    4. ``clinical_notes``: additional physician observations
+
+    If overriding, specify the alternative treatment plan and explain
+    why the AI recommendation was insufficient.
+
+    Output ONLY valid JSON with these four fields.
+  expected_output: >
+    A JSON object with: decision (approve/override), justification
+    (clinical reasoning), alternatives_considered (list of treatment
+    options with rationale), and clinical_notes.
+  agent: oversight_agent

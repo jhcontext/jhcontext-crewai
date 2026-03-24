@@ -142,6 +142,7 @@ class ContextMixin:
         For Raw-Forward, ``output.raw`` is left untouched.
         """
         from jhcontext.models import Envelope as EnvelopeModel
+        from jhcontext.flat_envelope import FlatEnvelope
 
         pydantic_out = getattr(output, "pydantic", None)
         raw = getattr(output, "raw", str(output))
@@ -157,8 +158,25 @@ class ContextMixin:
         prev_artifacts = list(persister.step_artifacts)
 
         # --- Full Envelope path ---
+        # Resolution order:
+        # 1. output_pydantic=Envelope (full nested model)
+        # 2. output_pydantic=FlatEnvelope (flat model → .to_envelope())
+        # 3. Raw JSON parsed as Envelope (free-form LLM output fallback)
+        env: EnvelopeModel | None = None
         if isinstance(pydantic_out, EnvelopeModel):
-            env: EnvelopeModel = pydantic_out
+            env = pydantic_out
+        elif isinstance(pydantic_out, FlatEnvelope):
+            env = pydantic_out.to_envelope()
+        elif raw:
+            import json as _json
+            try:
+                data = _json.loads(raw)
+                if isinstance(data, dict) and ("context_id" in data or "semantic_payload" in data):
+                    env = EnvelopeModel.model_validate(data)
+            except (_json.JSONDecodeError, Exception):
+                pass
+
+        if env is not None:
 
             # Per-task policy with monotonic enforcement (SDK)
             policy = enforcer.resolve(env)
@@ -266,15 +284,145 @@ class ContextMixin:
         client: JHContextClient = self.state["_api_client"]
         return client.get_envelope(self.state["_context_id"])
 
+    def _persist_oversight_events(
+        self,
+        events: list[dict[str, Any]],
+        oversight_agent_id: str,
+        summary_output: str,
+        overall_started_at: str,
+        overall_ended_at: str,
+    ) -> str:
+        """Persist fine-grained physician oversight events to the PROV graph.
+
+        Each event represents a distinct document-access activity with its
+        own timestamp, enabling ``verify_temporal_oversight()`` to validate
+        meaningful human review per EU AI Act Article 14.
+
+        Parameters
+        ----------
+        events:
+            List of dicts, each with keys: ``event_id``, ``label``,
+            ``started_at``, ``ended_at``, ``accessed_entity``,
+            ``entity_label``.
+        oversight_agent_id:
+            DID of the physician performing the review.
+        summary_output:
+            The narrative oversight report (persisted as art-oversight).
+        overall_started_at, overall_ended_at:
+            Timestamps bounding the full oversight phase.
+        """
+        builder: EnvelopeBuilder = self.state["_builder"]
+        prov: PROVGraph = self.state["_prov"]
+        client: JHContextClient = self.state["_api_client"]
+        context_id: str = self.state["_context_id"]
+        persister: StepPersister = self.state["_persister"]
+
+        # Add the oversight physician as a PROV agent
+        prov.add_agent(oversight_agent_id, oversight_agent_id, role="physician_oversight")
+
+        # Add source-document entities and access activities
+        accessed_entities = []
+        for event in events:
+            entity_id = event["accessed_entity"]
+            entity_label = event.get("entity_label", entity_id)
+            prov.add_entity(entity_id, entity_label, artifact_type="source_document")
+            accessed_entities.append(entity_id)
+
+            activity_id = event["event_id"]
+            prov.add_activity(
+                activity_id, event["label"],
+                started_at=event["started_at"],
+                ended_at=event["ended_at"],
+            )
+            prov.was_associated_with(activity_id, oversight_agent_id)
+            prov.used(activity_id, entity_id)
+
+        # Create the summary oversight artifact
+        content_hash = compute_sha256(summary_output.encode("utf-8"))
+        artifact_id = "art-oversight"
+        builder.add_artifact(
+            artifact_id=artifact_id,
+            artifact_type=ArtifactType.SEMANTIC_EXTRACTION,
+            content_hash=content_hash,
+        )
+        builder.set_passed_artifact(artifact_id)
+
+        prov.add_entity(
+            artifact_id, "Physician oversight summary",
+            artifact_type="semantic_extraction",
+            content_hash=content_hash,
+        )
+        oversight_activity_id = "act-oversight"
+        prov.add_activity(
+            oversight_activity_id, "physician_oversight",
+            started_at=overall_started_at,
+            ended_at=overall_ended_at,
+        )
+        prov.was_generated_by(artifact_id, oversight_activity_id)
+        prov.was_associated_with(oversight_activity_id, oversight_agent_id)
+
+        # Link oversight summary to all accessed source documents
+        for entity_id in accessed_entities:
+            prov.used(oversight_activity_id, entity_id)
+
+        # Link oversight to the clinical decision artifact
+        prev_artifacts = list(persister.step_artifacts)
+        if prev_artifacts:
+            prov.used(oversight_activity_id, prev_artifacts[-1])
+            prov.was_derived_from(artifact_id, prev_artifacts[-1])
+
+        persister.step_artifacts.append(artifact_id)
+        persister.metrics.append({
+            "step": "oversight",
+            "agent": oversight_agent_id,
+            "artifact_id": artifact_id,
+            "content_size_bytes": len(summary_output.encode("utf-8")),
+            "persist_ms": 0,
+            "started_at": overall_started_at,
+            "ended_at": overall_ended_at,
+        })
+
+        # Persist in background
+        def _do_persist():
+            signed_env = builder.sign(oversight_agent_id).build()
+            client.submit_envelope(signed_env)
+            client.submit_prov_graph(context_id, prov.serialize("turtle"))
+
+        threading.Thread(target=_do_persist, daemon=True).start()
+        return artifact_id
+
     def _log_decision(
         self,
         outcome: dict[str, Any],
         agent_id: str,
+        alternatives: list[dict[str, Any]] | None = None,
     ) -> str:
-        """Log a decision via the API."""
+        """Log a decision via the API.
+
+        If *alternatives* is provided, each alternative is added to the
+        PROV graph as an entity linked to the decision activity, recording
+        the decision-making context (options considered, not just outcome).
+        """
         client: JHContextClient = self.state["_api_client"]
         persister: StepPersister = self.state["_persister"]
+        prov: PROVGraph = self.state["_prov"]
         passed = persister.step_artifacts[-1] if persister.step_artifacts else None
+
+        # Record alternatives in PROV graph
+        if alternatives:
+            decision_activity = f"act-decision-eval"
+            prov.add_activity(
+                decision_activity, "decision_evaluation",
+                started_at=datetime.now(timezone.utc).isoformat(),
+                ended_at=datetime.now(timezone.utc).isoformat(),
+            )
+            prov.was_associated_with(decision_activity, agent_id)
+            for i, alt in enumerate(alternatives):
+                alt_id = f"ent-alt-{i}"
+                alt_label = alt.get("treatment", alt.get("label", f"alternative-{i}"))
+                prov.add_entity(alt_id, alt_label, artifact_type="decision_alternative")
+                prov.used(decision_activity, alt_id)
+
         return client.log_decision(
             context_id=self.state["_context_id"],
             passed_artifact_id=passed,

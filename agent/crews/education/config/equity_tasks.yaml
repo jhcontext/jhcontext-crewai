@@ -1,0 +1,12 @@
+equity_task:
+  description: >
+    In a SEPARATE workflow: consume aggregate identity metadata
+    for institutional reporting. Produce grade distribution
+    statistics by demographic group. This output must have
+    NO connection to individual grading decisions.
+  expected_output: >
+    Aggregate equity report with grade distribution by
+    demographic group, statistical significance tests, and
+    institutional recommendations. No individual student
+    identifiers or grades linked to identities.
+  agent: equity_agent

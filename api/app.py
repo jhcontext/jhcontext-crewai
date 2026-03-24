@@ -1,10 +1,19 @@
-"""jhcontext-api — Chalice REST API for PAC-AI protocol on AWS."""
+"""jhcontext-api — Chalice REST API for PAC-AI protocol on AWS.
+
+Supports two storage backends:
+- **DynamoDB + S3** (default) — for AWS Lambda deployment
+- **SQLite + filesystem** — for local development (``JHCONTEXT_LOCAL=1``)
+"""
+
+import os
 
 from chalice import Chalice
 
 from chalicelib.routes import envelopes, artifacts, provenance, decisions, compliance
 
 app = Chalice(app_name="jhcontext-api")
+
+_LOCAL_MODE = os.environ.get("JHCONTEXT_LOCAL", "").lower() in ("1", "true", "yes")
 
 
 # ── Storage singletons ───────────────────────────────────────────
@@ -14,20 +23,36 @@ _pii_vault = None
 
 
 def get_storage():
-    """Lazy-init DynamoDB storage backend (singleton per Lambda container)."""
+    """Lazy-init storage backend (singleton per Lambda container / process)."""
     global _storage
     if _storage is None:
-        from chalicelib.storage.dynamodb import DynamoDBStorage
-        _storage = DynamoDBStorage()
+        if _LOCAL_MODE:
+            from chalicelib.storage.sqlite import SQLiteStorage
+            data_dir = os.environ.get(
+                "JHCONTEXT_DATA_DIR", os.path.expanduser("~/.jhcontext-aws")
+            )
+            _storage = SQLiteStorage(db_path=os.path.join(data_dir, "data.db"))
+        else:
+            from chalicelib.storage.dynamodb import DynamoDBStorage
+            _storage = DynamoDBStorage()
     return _storage
 
 
 def get_pii_vault():
-    """Lazy-init DynamoDB PII vault (singleton per Lambda container)."""
+    """Lazy-init PII vault (singleton per Lambda container / process)."""
     global _pii_vault
     if _pii_vault is None:
-        from chalicelib.storage.pii_vault import DynamoDBPIIVault
-        _pii_vault = DynamoDBPIIVault()
+        if _LOCAL_MODE:
+            from chalicelib.storage.sqlite_pii_vault import SQLitePIIVault
+            data_dir = os.environ.get(
+                "JHCONTEXT_DATA_DIR", os.path.expanduser("~/.jhcontext-aws")
+            )
+            _pii_vault = SQLitePIIVault(
+                db_path=os.path.join(data_dir, "pii_vault.db")
+            )
+        else:
+            from chalicelib.storage.pii_vault import DynamoDBPIIVault
+            _pii_vault = DynamoDBPIIVault()
     return _pii_vault
 
 
