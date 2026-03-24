@@ -95,6 +95,7 @@ class ContextMixin:
         self.state["_enforcer"] = enforcer
         self.state["_persister"] = persister
         self.state["_total_start"] = time.time()
+        self.state["_task_envelopes"] = []  # per-task envelope snapshots
 
         # Generate preamble from the envelope's forwarding policy
         policy = env.compliance.forwarding_policy
@@ -102,6 +103,28 @@ class ContextMixin:
         self.state["_forwarding_preamble"] = policy.format_preamble(risk)
 
         return context_id
+
+    def _register_crew(
+        self,
+        crew_id: str,
+        label: str,
+        agent_ids: list[str],
+    ) -> None:
+        """Register a crew and link its member agents via prov:actedOnBehalfOf.
+
+        Call after ``_init_context()`` to declare which agents belong to
+        a crew.  The crew appears in the PROV graph as a
+        ``prov:SoftwareAgent`` with ``jh:agentType "crew"``, and each
+        member agent gets a ``prov:actedOnBehalfOf`` relation to it.
+
+        This enables SPARQL queries like "give me all activities from
+        crew X" without an external pipeline mechanism.
+        """
+        prov: PROVGraph = self.state["_prov"]
+        prov.add_crew(crew_id, label)
+        for agent_id in agent_ids:
+            prov.add_agent(agent_id, agent_id)
+            prov.acted_on_behalf_of(agent_id, crew_id)
 
     def _persist_step(
         self,
@@ -113,9 +136,13 @@ class ContextMixin:
         ended_at: str,
         used_artifacts: list[str] | None = None,
     ) -> str:
-        """Call after each crew.kickoff() — delegates to SDK StepPersister."""
+        """Call after each crew.kickoff() — delegates to SDK StepPersister.
+
+        Also creates a per-task envelope snapshot and appends it to
+        ``self.state["_task_envelopes"]``.
+        """
         persister: StepPersister = self.state["_persister"]
-        return persister.persist(
+        art_id = persister.persist(
             step_name=step_name,
             agent_id=agent_id,
             output=output,
@@ -124,6 +151,27 @@ class ContextMixin:
             ended_at=ended_at,
             used_artifacts=used_artifacts,
         )
+
+        # Build per-task envelope snapshot
+        content_hash = compute_sha256(output.encode("utf-8"))
+        flow_builder: EnvelopeBuilder = self.state["_builder"]
+        flow_env = flow_builder.build()
+
+        task_builder = EnvelopeBuilder()
+        task_builder.set_producer(agent_id)
+        task_builder.set_scope(flow_env.scope)
+        task_builder.set_risk_level(flow_env.compliance.risk_level)
+        task_builder.set_human_oversight(flow_env.compliance.human_oversight_required)
+        task_builder.add_artifact(
+            artifact_id=art_id,
+            artifact_type=artifact_type,
+            content_hash=content_hash,
+        )
+        task_builder.set_passed_artifact(art_id)
+        task_env = task_builder.sign(agent_id).build()
+        self.state["_task_envelopes"].append(task_env.to_jsonld())
+
+        return art_id
 
     def _persist_task_callback(self, output) -> None:
         """Task-level persistence via CrewAI task_callback.
@@ -249,7 +297,32 @@ class ContextMixin:
                 }
             )
 
-            # ── Phase 2 (async): persist full envelope to backend ──
+            # ── Build per-task envelope snapshot ──
+            task_builder = EnvelopeBuilder()
+            task_builder.set_producer(env.producer or agent_id)
+            task_builder.set_scope(env.scope or self.state.get("_scope", ""))
+            task_builder.set_risk_level(env.compliance.risk_level)
+            task_builder.set_human_oversight(env.compliance.human_oversight_required)
+            if env.compliance.forwarding_policy:
+                task_builder.set_forwarding_policy(env.compliance.forwarding_policy)
+            if env.semantic_payload:
+                task_builder.set_semantic_payload(env.semantic_payload)
+            task_builder.add_artifact(
+                artifact_id=artifact_id,
+                artifact_type=artifact_type,
+                content_hash=content_hash,
+            )
+            task_builder.set_passed_artifact(artifact_id)
+            for di in env.decision_influence:
+                task_builder.add_decision_influence(
+                    agent=di.agent,
+                    categories=di.categories,
+                    influence_weights=di.influence_weights,
+                )
+            task_env = task_builder.sign(agent_id).build()
+            self.state["_task_envelopes"].append(task_env.to_jsonld())
+
+            # ── Phase 2 (async): persist flow envelope + PROV to backend ──
             def _do_persist_envelope():
                 signed_env = builder.sign(agent_id).build()
                 client.submit_envelope(signed_env)

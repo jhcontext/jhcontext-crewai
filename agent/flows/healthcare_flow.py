@@ -66,6 +66,20 @@ class HealthcareFlow(Flow, ContextMixin):
             risk_level=RiskLevel.HIGH,
             human_oversight=True,
         )
+
+        # Register the clinical pipeline crew in the PROV graph.
+        # The physician (dr-chen) is intentionally outside the crew —
+        # oversight must be external to the decision-making pipeline.
+        self._register_crew(
+            crew_id="crew:clinical-pipeline",
+            label="Clinical Pipeline Crew",
+            agent_ids=[
+                "did:hospital:sensor-agent",
+                "did:hospital:situation-agent",
+                "did:hospital:decision-agent",
+            ],
+        )
+
         print(f"[Healthcare] Initialized context: {context_id}")
         return self.state.get("patient_input", self._default_patient())
 
@@ -208,21 +222,13 @@ class HealthcareFlow(Flow, ContextMixin):
         return result.raw
 
     def _save_outputs(self, audit_output: str, programmatic_report=None):
-        """Save envelope, PROV, audit report, and metrics to output/."""
+        """Save envelopes, PROV, audit report, and metrics to output/."""
         context_id = self.state["_context_id"]
-        client = self.state["_api_client"]
 
-        # Envelope — try backend first, fall back to building locally
-        builder = self.state["_builder"]
-        try:
-            envelope = client.get_envelope(context_id)
-        except Exception:
-            envelope = None
-        if envelope is None:
-            envelope = builder.sign("did:hospital:system").build()
-            envelope = envelope.to_jsonld()
-        (_out.current / "healthcare_envelope.json").write_text(
-            json.dumps(envelope, indent=2)
+        # Per-task envelopes (each task has its own context_id + preamble)
+        task_envelopes = self.state.get("_task_envelopes", [])
+        (_out.current / "healthcare_envelopes.json").write_text(
+            json.dumps(task_envelopes, indent=2)
         )
 
         # PROV graph

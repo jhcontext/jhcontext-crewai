@@ -1,24 +1,24 @@
 {
-  "context_id": "ctx-bdd9b800-bca2-440a-9cb0-83c695181aab",
-  "total_ms": 13617.97,
+  "context_id": "ctx-a1d910dc-1494-4639-9532-64ac5bf429fe",
+  "total_ms": 12148.3,
   "steps": [
     {
       "step": "ingestion",
       "agent": "did:university:ingestion-agent",
       "artifact_id": "art-ingestion",
-      "content_size_bytes": 1699,
-      "persist_ms": 2994.46,
-      "started_at": "2026-03-24T13:16:54.038865+00:00",
-      "ended_at": "2026-03-24T13:16:59.822479+00:00"
+      "content_size_bytes": 1839,
+      "persist_ms": 2079.6,
+      "started_at": "2026-03-24T21:46:51.365366+00:00",
+      "ended_at": "2026-03-24T21:46:57.667805+00:00"
     },
     {
       "step": "grading",
       "agent": "did:university:grading-agent",
       "artifact_id": "art-grading",
-      "content_size_bytes": 1104,
-      "persist_ms": 157.63,
-      "started_at": "2026-03-24T13:17:02.825657+00:00",
-      "ended_at": "2026-03-24T13:17:07.367007+00:00"
+      "content_size_bytes": 1099,
+      "persist_ms": 157.05,
+      "started_at": "2026-03-24T21:46:59.765338+00:00",
+      "ended_at": "2026-03-24T21:47:03.202560+00:00"
     }
   ]
 }

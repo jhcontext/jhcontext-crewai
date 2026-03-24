@@ -44,6 +44,16 @@ class EducationGradingFlow(Flow, ContextMixin):
             risk_level=RiskLevel.HIGH,
             human_oversight=False,
         )
+
+        self._register_crew(
+            crew_id="crew:grading",
+            label="Grading Crew",
+            agent_ids=[
+                "did:university:ingestion-agent",
+                "did:university:grading-agent",
+            ],
+        )
+
         print(f"[Education/Grading] Initialized context: {context_id}")
         return self.state.get("submission_input", self._default_submission())
 
@@ -92,19 +102,10 @@ class EducationGradingFlow(Flow, ContextMixin):
     @listen(blind_grading)
     def grading_complete(self, grading_output):
         """Save grading workflow outputs."""
-        context_id = self.state["_context_id"]
-        client = self.state["_api_client"]
-
-        builder = self.state["_builder"]
-        try:
-            envelope = client.get_envelope(context_id)
-        except Exception:
-            envelope = None
-        if envelope is None:
-            envelope = builder.sign("did:university:grading-system").build()
-            envelope = envelope.to_jsonld()
-        (_out.current / "education_grading_envelope.json").write_text(
-            json.dumps(envelope, indent=2)
+        # Per-task envelopes
+        task_envelopes = self.state.get("_task_envelopes", [])
+        (_out.current / "education_grading_envelopes.json").write_text(
+            json.dumps(task_envelopes, indent=2)
         )
 
         prov_turtle = self.state["_prov"].serialize("turtle")
@@ -141,6 +142,13 @@ class EducationEquityFlow(Flow, ContextMixin):
             risk_level=RiskLevel.MEDIUM,
             human_oversight=False,
         )
+
+        self._register_crew(
+            crew_id="crew:equity",
+            label="Equity Crew",
+            agent_ids=["did:university:equity-agent"],
+        )
+
         print(f"[Education/Equity] Initialized context: {context_id}")
         return self.state.get("identity_input", self._default_identity())
 

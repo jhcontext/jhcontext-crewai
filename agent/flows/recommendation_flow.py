@@ -46,6 +46,17 @@ class RecommendationFlow(Flow, ContextMixin):
             risk_level=RiskLevel.LOW,
             human_oversight=False,
         )
+
+        self._register_crew(
+            crew_id="crew:recommendation",
+            label="Recommendation Crew",
+            agent_ids=[
+                "did:ecommerce:profile-agent",
+                "did:ecommerce:search-agent",
+                "did:ecommerce:personalize-agent",
+            ],
+        )
+
         print(f"[Recommendation] Initialized context: {context_id}")
         return self.state.get("user_input", self._default_user())
 
@@ -75,21 +86,13 @@ class RecommendationFlow(Flow, ContextMixin):
         return result.raw
 
     def _save_outputs(self, recommendation_output: str):
-        """Save envelope, PROV, recommendation output, and metrics."""
+        """Save envelopes, PROV, recommendation output, and metrics."""
         context_id = self.state["_context_id"]
-        client = self.state["_api_client"]
 
-        # Envelope — try backend first, fall back to building locally
-        builder = self.state["_builder"]
-        try:
-            envelope = client.get_envelope(context_id)
-        except Exception:
-            envelope = None
-        if envelope is None:
-            envelope = builder.sign("did:ecommerce:rec-system").build()
-            envelope = envelope.to_jsonld()
-        (_out.current / "recommendation_envelope.json").write_text(
-            json.dumps(envelope, indent=2)
+        # Per-task envelopes
+        task_envelopes = self.state.get("_task_envelopes", [])
+        (_out.current / "recommendation_envelopes.json").write_text(
+            json.dumps(task_envelopes, indent=2)
         )
 
         # PROV graph

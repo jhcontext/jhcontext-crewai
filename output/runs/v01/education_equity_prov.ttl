@@ -7,15 +7,21 @@ jh:art-equity a prov:Entity ;
     rdfs:label "Output of equity" ;
     prov:wasGeneratedBy jh:act-equity ;
     jh:artifactType "semantic_extraction" ;
-    jh:contentHash "204ae2d0529fbaa9a14cb789a57bdf5e01a9b9277a6e062b24ab3d5f00765305" .
+    jh:contentHash "dfce5ef4c06c7bd86b19a0d20f70e0161fa16e7997b05dd8dd58f1c3be6e4792" .
 
 <did:university:equity-agent> a prov:Agent ;
     rdfs:label "did:university:equity-agent" ;
+    prov:actedOnBehalfOf <https://jhcontext.com/vocab#crew:equity> ;
     jh:role "equity" .
 
 jh:act-equity a prov:Activity ;
     rdfs:label "equity" ;
-    prov:endedAtTime "2026-03-24T13:17:14.692439+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:17:07.772351+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:47:10.899090+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:47:03.610189+00:00"^^xsd:dateTime ;
     prov:wasAssociatedWith <did:university:equity-agent> .
+
+<https://jhcontext.com/vocab#crew:equity> a prov:Agent,
+        prov:SoftwareAgent ;
+    rdfs:label "Equity Crew" ;
+    jh:agentType "crew" .
 

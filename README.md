@@ -6,6 +6,8 @@ Multi-agent healthcare, education, and recommendation scenarios that demonstrate
 compliance (Articles 13 and 14) through auditable context envelopes, W3C PROV provenance
 graphs, and cryptographic integrity verification — all persisted on DynamoDB + S3.
 
+> **TL;DR:** This is the production-grade version of the jhcontext compliance scenarios — real CrewAI agents, AWS infrastructure (Chalice Lambda + DynamoDB + S3), and persistent storage. For a lightweight in-memory proof-of-concept with no infrastructure, see [jhcontext-usecases](../jhcontext-usecases/).
+
 ## Architecture
 
 ```
@@ -44,6 +46,56 @@ Each scenario demonstrates a different EU AI Act compliance pattern:
 | [Healthcare](docs/crews/healthcare.md) | Art. 14 — Human Oversight | HIGH | 5 (sensor → situation → decision → oversight → audit) | Temporal proof that physician reviewed docs AFTER AI recommendation |
 | [Education](docs/crews/education.md) | Art. 13 — Non-Discrimination | HIGH | 4 (ingestion → grading ╳ equity → audit) | Workflow isolation + negative proof (identity absent from grading) |
 | [Recommendation](docs/crews/recommendation.md) | LOW-risk | LOW | 3 (profile → search → personalize) | Full provenance with Raw-Forward policy |
+
+## Crew Delegation in PROV
+
+Crews are modeled explicitly in the W3C PROV graph using `prov:actedOnBehalfOf`. The
+PROV graph itself serves as the coordination layer — no external pipeline ID needed.
+
+In any flow, call `_register_crew()` after `_init_context()`:
+
+```python
+class MyFlow(Flow, ContextMixin):
+    @start()
+    def init(self):
+        self._init_context(
+            scope="healthcare",
+            producer="did:hospital:system",
+            risk_level=RiskLevel.HIGH,
+        )
+
+        # Agents in the crew get prov:actedOnBehalfOf the crew agent
+        self._register_crew(
+            crew_id="crew:clinical-pipeline",
+            label="Clinical Pipeline Crew",
+            agent_ids=[
+                "did:hospital:sensor-agent",
+                "did:hospital:situation-agent",
+                "did:hospital:decision-agent",
+            ],
+        )
+        # Oversight agent stays outside the crew — explicit boundary
+```
+
+This produces PROV triples like:
+
+```turtle
+jh:crew-clinical-pipeline a prov:Agent, prov:SoftwareAgent ;
+    rdfs:label "Clinical Pipeline Crew" ;
+    jh:agentType "crew" .
+
+<did:hospital:sensor-agent> prov:actedOnBehalfOf jh:crew-clinical-pipeline .
+```
+
+Query all activities from a crew via SPARQL:
+
+```sparql
+SELECT ?activity ?label WHERE {
+    ?agent prov:actedOnBehalfOf jh:crew-clinical-pipeline .
+    ?activity prov:wasAssociatedWith ?agent .
+    ?activity rdfs:label ?label .
+}
+```
 
 ## Quick Start
 

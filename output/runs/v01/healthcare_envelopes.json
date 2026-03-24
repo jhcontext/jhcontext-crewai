@@ -1,0 +1,531 @@
+[
+  {
+    "context_id": "ctx-3ba8544f-4262-47ab-865f-89a3651ba344",
+    "schema_version": "jh:0.3",
+    "producer": "did:hospital:sensor-agent",
+    "created_at": "2026-03-24T21:45:03.977257+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "healthcare_treatment_recommendation",
+    "semantic_payload": [
+      {
+        "@model": "UserML",
+        "layers": {
+          "observation": [
+            {
+              "subject": "P-12345",
+              "predicate": "demographic",
+              "object": {
+                "age": 62,
+                "gender": "M"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "lab_result",
+              "object": {
+                "name": "CEA",
+                "value": 12.5,
+                "unit": "ng/mL"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "lab_result",
+              "object": {
+                "name": "WBC",
+                "value": 7.2,
+                "unit": "K/uL"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "lab_result",
+              "object": {
+                "name": "Hemoglobin",
+                "value": 13.1,
+                "unit": "g/dL"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "imaging_finding",
+              "object": {
+                "location": "RUL",
+                "finding": "pulmonary nodule",
+                "size_cm": 2.3,
+                "prior_size_cm": 3.1,
+                "trend": "decreased"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-sensor",
+        "type": "token_sequence",
+        "content_hash": "6b926b1ef39961758c4bcf3b94a1c4e08831fa045e969bec6f36a262299d7272",
+        "timestamp": "2026-03-24T21:45:03.977307+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-sensor",
+    "decision_influence": [
+      {
+        "agent": "Clinical Context Sensor Agent",
+        "categories": [
+          "patient_demographics",
+          "laboratory_results",
+          "imaging_metadata",
+          "oncology_markers"
+        ],
+        "abstraction_level": "situation",
+        "temporal_scope": "current",
+        "influence_weights": {},
+        "confidence": 0.0
+      }
+    ],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": true,
+      "forwarding_policy": "raw_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "109febed93915b482c3d7ab0c4ac3e61c1fbc1e0842828060d7c09ec043d72c5",
+      "signature": "_Q9Jwmy7BleqtrMV4UqyduXMg5mTNE8nutd-xp9z1tAJ0uQWxFjuWBVv07uN3Fm9ZufKCcdDdGJpbkXe4z9bBg==",
+      "signer": "did:hospital:sensor-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@type": "jh:Envelope"
+  },
+  {
+    "context_id": "ctx-fd729fb2-3b10-465a-ac14-9ffdcf29e9e7",
+    "schema_version": "jh:0.3",
+    "producer": "did:hospital:situation-agent",
+    "created_at": "2026-03-24T21:45:09.185636+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "healthcare_treatment_recommendation",
+    "semantic_payload": [
+      {
+        "@model": "UserML",
+        "layers": {
+          "observation": [
+            {
+              "subject": "P-12345",
+              "predicate": "demographic",
+              "object": {
+                "age": 62,
+                "gender": "M"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "lab_result",
+              "object": {
+                "name": "CEA",
+                "value": 12.5,
+                "unit": "ng/mL"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "lab_result",
+              "object": {
+                "name": "WBC",
+                "value": 7.2,
+                "unit": "K/uL"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "lab_result",
+              "object": {
+                "name": "Hemoglobin",
+                "value": 13.1,
+                "unit": "g/dL"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "imaging_finding",
+              "object": {
+                "location": "RUL",
+                "finding": "pulmonary nodule",
+                "size_cm": 2.3,
+                "prior_size_cm": 3.1,
+                "trend": "decreased"
+              }
+            }
+          ],
+          "interpretation": [
+            {
+              "subject": "P-12345",
+              "predicate": "risk_assessment",
+              "object": "high",
+              "confidence": 0.89
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "clinical_pattern",
+              "object": "responding_to_treatment",
+              "confidence": 0.85
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "biomarker_trend",
+              "object": "elevated_cea_with_nodule_regression",
+              "confidence": 0.87
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "treatment_response",
+              "object": "favorable_imaging_trajectory",
+              "confidence": 0.84
+            }
+          ],
+          "situation": [
+            {
+              "subject": "P-12345",
+              "predicate": "isInSituation",
+              "object": "treatment_candidate",
+              "confidence": 0.89
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "isInSituation",
+              "object": "monitoring_required",
+              "confidence": 0.87
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-situation",
+        "type": "semantic_extraction",
+        "content_hash": "d4442380e3a8bb027ae1166447a2156c70f8d9795b2cd328c510aba89ec356d3",
+        "timestamp": "2026-03-24T21:45:09.185675+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-situation",
+    "decision_influence": [
+      {
+        "agent": "Clinical Situation Recognition Agent",
+        "categories": [
+          "patient_history",
+          "risk_indicators",
+          "laboratory_results",
+          "imaging_findings",
+          "oncology_markers",
+          "treatment_response"
+        ],
+        "abstraction_level": "situation",
+        "temporal_scope": "current",
+        "influence_weights": {},
+        "confidence": 0.0
+      }
+    ],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": true,
+      "forwarding_policy": "semantic_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "ed2728ca4dffef21e4e77fe7316a7639e14916d93d808fe43ae89d12fbcf2f07",
+      "signature": "gmx2d7vhPbMaydVwGcB_fxxfk9Tv_TGyvF9sPH-TZibevrctLv8rC9WGks_rGwnpVshWZTcGGazKWwxIY3i8Dg==",
+      "signer": "did:hospital:situation-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@type": "jh:Envelope"
+  },
+  {
+    "context_id": "ctx-15ab7034-0cd7-4be5-8ce5-18d7a5a4d3fa",
+    "schema_version": "jh:0.3",
+    "producer": "did:hospital:decision-agent",
+    "created_at": "2026-03-24T21:45:27.627148+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "healthcare_treatment_recommendation",
+    "semantic_payload": [
+      {
+        "@model": "UserML",
+        "layers": {
+          "observation": [
+            {
+              "subject": "P-12345",
+              "predicate": "demographic",
+              "object": {
+                "age": 62,
+                "gender": "M"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "lab_result",
+              "object": {
+                "name": "CEA",
+                "value": 12.5,
+                "unit": "ng/mL"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "lab_result",
+              "object": {
+                "name": "WBC",
+                "value": 7.2,
+                "unit": "K/uL"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "lab_result",
+              "object": {
+                "name": "Hemoglobin",
+                "value": 13.1,
+                "unit": "g/dL"
+              }
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "imaging_finding",
+              "object": {
+                "location": "RUL",
+                "finding": "pulmonary nodule",
+                "size_cm": 2.3,
+                "prior_size_cm": 3.1,
+                "trend": "decreased"
+              }
+            }
+          ],
+          "interpretation": [
+            {
+              "subject": "P-12345",
+              "predicate": "risk_assessment",
+              "object": "high",
+              "confidence": 0.89
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "clinical_pattern",
+              "object": "responding_to_treatment",
+              "confidence": 0.85
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "biomarker_trend",
+              "object": "elevated_cea_with_nodule_regression",
+              "confidence": 0.87
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "treatment_response",
+              "object": "favorable_imaging_trajectory",
+              "confidence": 0.84
+            }
+          ],
+          "situation": [
+            {
+              "subject": "P-12345",
+              "predicate": "isInSituation",
+              "object": "treatment_candidate",
+              "confidence": 0.89
+            },
+            {
+              "subject": "P-12345",
+              "predicate": "isInSituation",
+              "object": "monitoring_required",
+              "confidence": 0.87
+            }
+          ],
+          "application": [
+            {
+              "predicate": "treatment_recommendation",
+              "object": "continue_chemotherapy_with_reassessment",
+              "justification": "Patient P-12345 (62M) demonstrates favorable imaging trajectory with RUL pulmonary nodule regression from 3.1cm to 2.3cm, consistent with treatment response. CEA remains elevated at 12.5 ng/mL warranting continued monitoring. WBC (7.2 K/uL) and Hemoglobin (13.1 g/dL) are within acceptable ranges supporting continued systemic therapy. Clinical pattern interpretation confirms responding_to_treatment (confidence 0.85) and favorable_imaging_trajectory (confidence 0.84). Recommended plan: continue current chemotherapy regimen, schedule reassessment imaging in 6-8 weeks, serial CEA monitoring every 3-4 weeks, and multidisciplinary tumor board review given high-risk classification.",
+              "supporting_evidence": [
+                "Pulmonary nodule regression: 3.1cm -> 2.3cm (trend: decreased) \u2014 favorable imaging trajectory",
+                "Clinical pattern: responding_to_treatment (confidence 0.85)",
+                "Biomarker trend: elevated_cea_with_nodule_regression (confidence 0.87)",
+                "Treatment response: favorable_imaging_trajectory (confidence 0.84)",
+                "Hematologic stability: WBC 7.2 K/uL, Hemoglobin 13.1 g/dL \u2014 supports continued systemic therapy",
+                "Situation assessment: treatment_candidate (confidence 0.89), monitoring_required (confidence 0.87)"
+              ],
+              "risk_assessment": {
+                "level": "high",
+                "rationale": "Risk interpreted as high (confidence 0.89) per semantic extraction. CEA remains elevated at 12.5 ng/mL despite nodule regression, indicating incomplete biomarker normalization. Patient age 62 with ongoing oncologic disease warrants close surveillance. Confidence score below 0.95 threshold mandates human oversight."
+              }
+            },
+            {
+              "predicate": "oversight_required",
+              "object": true
+            },
+            {
+              "predicate": "confidence_score",
+              "object": 0.87
+            }
+          ]
+        },
+        "artifacts_registry": [
+          {
+            "artifact_id": "art-decision",
+            "artifact_type": "semantic_extraction",
+            "scope": "healthcare_treatment_recommendation",
+            "producer": "did:hospital:decision-agent",
+            "compliance": {
+              "risk_level": "high",
+              "human_oversight_required": true,
+              "forwarding_policy": "semantic_forward"
+            },
+            "decision_influence": {
+              "categories": [
+                "clinical_situation",
+                "treatment_protocols",
+                "risk_assessment"
+              ],
+              "influence_weights": {
+                "clinical_situation": 0.4,
+                "treatment_protocols": 0.35,
+                "risk_assessment": 0.25
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-decision",
+        "type": "semantic_extraction",
+        "content_hash": "5858648de07d54ffbc775c54a556b8a2b9f2709a483eb2a75a8849fbd1036438",
+        "timestamp": "2026-03-24T21:45:27.627264+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-decision",
+    "decision_influence": [
+      {
+        "agent": "did:hospital:decision-agent",
+        "categories": [
+          "clinical_situation",
+          "treatment_protocols",
+          "risk_assessment"
+        ],
+        "abstraction_level": "situation",
+        "temporal_scope": "current",
+        "influence_weights": {},
+        "confidence": 0.0
+      }
+    ],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": true,
+      "forwarding_policy": "semantic_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "3d4fd60bf135cc9b71e268af923e5a22ecaebaca6601144160fc5e788203c463",
+      "signature": "1kwAEEEhKeRsk2TmPM7SZ8uIwFClyh4yCue_HFi4Kk5_W1hrV1qadFaFVa6Lv49z2sjXQ5bKW6TQeG68cpGADA==",
+      "signer": "did:hospital:decision-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@type": "jh:Envelope"
+  },
+  {
+    "context_id": "ctx-60a32220-6fa1-4e18-adf4-f128170b4ddd",
+    "schema_version": "jh:0.3",
+    "producer": "did:hospital:audit-agent",
+    "created_at": "2026-03-24T21:46:51.281953+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "healthcare_treatment_recommendation",
+    "semantic_payload": [],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-audit",
+        "type": "tool_result",
+        "content_hash": "ec012cf23823d8609b198b2157eee9962b162b5f7766664527c2e80efd19201b",
+        "timestamp": "2026-03-24T21:46:51.282009+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-audit",
+    "decision_influence": [],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": true,
+      "forwarding_policy": "semantic_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "f20858f6704af9e34076e7b4367c8848a0a8576d8661c4d861dd057af117364a",
+      "signature": "jeEodSjnzkZm5bWNtLKGWZI2J2jElyIH_RiPJiZoHrM0ooFn_d35Zz7fwc4sryWwf0UtOOzefv42J9j_wl4tDQ==",
+      "signer": "did:hospital:audit-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@type": "jh:Envelope"
+  }
+]

@@ -134,6 +134,7 @@ def local_server():
 
 def run_healthcare():
     """Run the healthcare human oversight scenario (Article 14)."""
+    import agent.output_dir as _out
     from agent.flows.healthcare_flow import HealthcareFlow
 
     print("=" * 60)
@@ -146,12 +147,13 @@ def run_healthcare():
 
     print("\n" + "=" * 60)
     print("Healthcare scenario complete.")
-    print(f"Outputs in: {OUTPUT_DIR}/healthcare_*")
+    print(f"Outputs in: {_out.current}/healthcare_*")
     return result
 
 
 def run_education():
     """Run the education fair assessment scenario (Article 13)."""
+    import agent.output_dir as _out
     from agent.flows.education_flow import (
         EducationAuditFlow,
         EducationEquityFlow,
@@ -177,12 +179,13 @@ def run_education():
 
     print("\n" + "=" * 60)
     print("Education scenario complete.")
-    print(f"Outputs in: {OUTPUT_DIR}/education_*")
+    print(f"Outputs in: {_out.current}/education_*")
     return result
 
 
 def run_recommendation():
     """Run the product recommendation scenario (LOW-risk)."""
+    import agent.output_dir as _out
     from agent.flows.recommendation_flow import RecommendationFlow
 
     print("=" * 60)
@@ -195,7 +198,7 @@ def run_recommendation():
 
     print("\n" + "=" * 60)
     print("Recommendation scenario complete.")
-    print(f"Outputs in: {OUTPUT_DIR}/recommendation_*")
+    print(f"Outputs in: {_out.current}/recommendation_*")
     return result
 
 

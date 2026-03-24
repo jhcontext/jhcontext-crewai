@@ -1,33 +1,33 @@
 {
-  "context_id": "ctx-04c007ba-b4b0-4fd6-a0b5-94d1c090eefb",
-  "total_ms": 34868.62,
+  "context_id": "ctx-46d773cb-077e-4f19-9784-d7258c55be14",
+  "total_ms": 33541.4,
   "steps": [
     {
       "step": "profile",
       "agent": "did:ecommerce:profile-agent",
       "artifact_id": "art-profile",
-      "content_size_bytes": 2674,
+      "content_size_bytes": 2693,
       "persist_ms": 0,
-      "started_at": "2026-03-24T13:19:04.904558+00:00",
-      "ended_at": "2026-03-24T13:19:04.904558+00:00"
+      "started_at": "2026-03-24T21:48:33.882593+00:00",
+      "ended_at": "2026-03-24T21:48:33.882593+00:00"
     },
     {
       "step": "search",
       "agent": "did:ecommerce:search-agent",
       "artifact_id": "art-search",
-      "content_size_bytes": 2461,
+      "content_size_bytes": 2307,
       "persist_ms": 0,
-      "started_at": "2026-03-24T13:19:15.501393+00:00",
-      "ended_at": "2026-03-24T13:19:15.501393+00:00"
+      "started_at": "2026-03-24T21:48:40.752634+00:00",
+      "ended_at": "2026-03-24T21:48:40.752634+00:00"
     },
     {
       "step": "personalize",
       "agent": "did:ecommerce:personalize-agent",
       "artifact_id": "art-personalize",
-      "content_size_bytes": 2257,
+      "content_size_bytes": 2116,
       "persist_ms": 0,
-      "started_at": "2026-03-24T13:19:32.350533+00:00",
-      "ended_at": "2026-03-24T13:19:32.350533+00:00"
+      "started_at": "2026-03-24T21:48:56.324102+00:00",
+      "ended_at": "2026-03-24T21:48:56.324102+00:00"
     }
   ]
 }

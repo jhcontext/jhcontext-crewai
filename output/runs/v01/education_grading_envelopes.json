@@ -1,0 +1,98 @@
+[
+  {
+    "context_id": "ctx-4fccd8ea-f7a8-480d-a7b3-723e74f83c79",
+    "schema_version": "jh:0.3",
+    "producer": "did:university:ingestion-agent",
+    "created_at": "2026-03-24T21:46:59.747719+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "education_assessment_grading",
+    "semantic_payload": [],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-ingestion",
+        "type": "token_sequence",
+        "content_hash": "47ab36323b19580aad781c5c7881a2fab1b75f9b5c168215eabce2c875878cb1",
+        "timestamp": "2026-03-24T21:46:59.747938+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-ingestion",
+    "decision_influence": [],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": false,
+      "forwarding_policy": "semantic_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "931b48c01eabd4021fcccb9e788a25197a27b8831c34b0b960bd0e96a74ee866",
+      "signature": "qkM2dNq0Xu_5vDwavGlnrarvdXE8qlQg-xza6Jbx_0rCv0wQZ-SgIADp42IFGN4Ttda2LQ2Kii9jVpJJs1veAw==",
+      "signer": "did:university:ingestion-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@type": "jh:Envelope"
+  },
+  {
+    "context_id": "ctx-cb9ab0f1-50dd-460b-b601-b44081e8546f",
+    "schema_version": "jh:0.3",
+    "producer": "did:university:grading-agent",
+    "created_at": "2026-03-24T21:47:03.359915+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "education_assessment_grading",
+    "semantic_payload": [],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-grading",
+        "type": "semantic_extraction",
+        "content_hash": "8ed97106b67088f67cfcd01a335b5e8ea1311422115821b76c6ace1e43052c55",
+        "timestamp": "2026-03-24T21:47:03.360062+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-grading",
+    "decision_influence": [],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": false,
+      "forwarding_policy": "semantic_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "221d4caa2f40a8f6daf0e525a5fb6ac86ace15055dd53956b52ddb41117ea551",
+      "signature": "rmr4Ss_yT-k3Px-IvMwnm5FoJ8tfb0X6eDRJlEVKGTRrYWdwwzziw7SGVxYxeqHHG46bcAcEFnGtv_7hCeMsBA==",
+      "signer": "did:university:grading-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@type": "jh:Envelope"
+  }
+]

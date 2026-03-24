@@ -5,29 +5,29 @@
 
 jh:act-access-ct-scan a prov:Activity ;
     rdfs:label "Access CT scan" ;
-    prov:endedAtTime "2026-03-24T13:13:49.512481+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:13:45.512294+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:45:31.917051+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:45:27.916764+00:00"^^xsd:dateTime ;
     prov:used jh:ent-ct-scan ;
     prov:wasAssociatedWith <did:hospital:dr-chen> .
 
 jh:act-access-history a prov:Activity ;
     rdfs:label "Access treatment history" ;
-    prov:endedAtTime "2026-03-24T13:13:52.512813+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:13:49.512552+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:45:34.917500+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:45:31.917125+00:00"^^xsd:dateTime ;
     prov:used jh:ent-treatment-history ;
     prov:wasAssociatedWith <did:hospital:dr-chen> .
 
 jh:act-access-pathology a prov:Activity ;
     rdfs:label "Access pathology report" ;
-    prov:endedAtTime "2026-03-24T13:13:54.513072+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:13:52.512884+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:45:36.917775+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:45:34.917571+00:00"^^xsd:dateTime ;
     prov:used jh:ent-pathology ;
     prov:wasAssociatedWith <did:hospital:dr-chen> .
 
 jh:act-review-ai a prov:Activity ;
     rdfs:label "Review AI recommendation" ;
-    prov:endedAtTime "2026-03-24T13:13:55.513272+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:13:54.513126+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:45:37.918233+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:45:36.917840+00:00"^^xsd:dateTime ;
     prov:used jh:ent-ai-recommendation ;
     prov:wasAssociatedWith <did:hospital:dr-chen> .
 
@@ -39,7 +39,7 @@ jh:art-audit a prov:Entity ;
         jh:art-situation ;
     prov:wasGeneratedBy jh:act-audit ;
     jh:artifactType "tool_result" ;
-    jh:contentHash "84954efcd58aec8a516d15d409eae8107da0a439bf11d87bd1cbef16b104094f" .
+    jh:contentHash "ec012cf23823d8609b198b2157eee9962b162b5f7766664527c2e80efd19201b" .
 
 <did:hospital:audit-agent> a prov:Agent ;
     rdfs:label "did:hospital:audit-agent" ;
@@ -47,20 +47,23 @@ jh:art-audit a prov:Entity ;
 
 <did:hospital:decision-agent> a prov:Agent ;
     rdfs:label "did:hospital:decision-agent" ;
+    prov:actedOnBehalfOf <https://jhcontext.com/vocab#crew:clinical-pipeline> ;
     jh:role "decision" .
 
 <did:hospital:sensor-agent> a prov:Agent ;
     rdfs:label "did:hospital:sensor-agent" ;
+    prov:actedOnBehalfOf <https://jhcontext.com/vocab#crew:clinical-pipeline> ;
     jh:role "sensor" .
 
 <did:hospital:situation-agent> a prov:Agent ;
     rdfs:label "did:hospital:situation-agent" ;
+    prov:actedOnBehalfOf <https://jhcontext.com/vocab#crew:clinical-pipeline> ;
     jh:role "situation" .
 
 jh:act-audit a prov:Activity ;
     rdfs:label "audit" ;
-    prov:endedAtTime "2026-03-24T13:15:09.155722+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:14:13.259704+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:46:51.117973+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:45:52.861511+00:00"^^xsd:dateTime ;
     prov:used jh:art-decision,
         jh:art-oversight,
         jh:art-sensor,
@@ -69,15 +72,15 @@ jh:act-audit a prov:Activity ;
 
 jh:act-decision a prov:Activity ;
     rdfs:label "decision" ;
-    prov:endedAtTime "2026-03-24T13:13:45.100116+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:13:45.100116+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:45:27.623384+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:45:27.623384+00:00"^^xsd:dateTime ;
     prov:used jh:art-situation ;
     prov:wasAssociatedWith <did:hospital:decision-agent> .
 
 jh:act-oversight a prov:Activity ;
     rdfs:label "physician_oversight" ;
-    prov:endedAtTime "2026-03-24T13:14:13.218850+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:13:45.512284+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:45:52.806362+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:45:27.916754+00:00"^^xsd:dateTime ;
     prov:used jh:art-decision,
         jh:ent-ai-recommendation,
         jh:ent-ct-scan,
@@ -87,14 +90,14 @@ jh:act-oversight a prov:Activity ;
 
 jh:act-sensor a prov:Activity ;
     rdfs:label "sensor" ;
-    prov:endedAtTime "2026-03-24T13:13:20.522316+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:13:20.522316+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:45:03.976237+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:45:03.976237+00:00"^^xsd:dateTime ;
     prov:wasAssociatedWith <did:hospital:sensor-agent> .
 
 jh:act-situation a prov:Activity ;
     rdfs:label "situation" ;
-    prov:endedAtTime "2026-03-24T13:13:26.228164+00:00"^^xsd:dateTime ;
-    prov:startedAtTime "2026-03-24T13:13:26.228164+00:00"^^xsd:dateTime ;
+    prov:endedAtTime "2026-03-24T21:45:09.184692+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T21:45:09.184692+00:00"^^xsd:dateTime ;
     prov:used jh:art-sensor ;
     prov:wasAssociatedWith <did:hospital:situation-agent> .
 
@@ -103,7 +106,7 @@ jh:art-oversight a prov:Entity ;
     prov:wasDerivedFrom jh:art-decision ;
     prov:wasGeneratedBy jh:act-oversight ;
     jh:artifactType "semantic_extraction" ;
-    jh:contentHash "b3d4b2d3deead2b9a4cc3271109f256be6a536784af5aca2e71e8372e3d62066" .
+    jh:contentHash "6031c7617959d49816b7c36d4e90bc46053d1f1cf772b9e7acbb34f56fc5c11f" .
 
 jh:ent-ai-recommendation a prov:Entity ;
     rdfs:label "AI recommendation" ;
@@ -121,12 +124,17 @@ jh:ent-treatment-history a prov:Entity ;
     rdfs:label "Treatment history" ;
     jh:artifactType "source_document" .
 
+<https://jhcontext.com/vocab#crew:clinical-pipeline> a prov:Agent,
+        prov:SoftwareAgent ;
+    rdfs:label "Clinical Pipeline Crew" ;
+    jh:agentType "crew" .
+
 jh:art-decision a prov:Entity ;
     rdfs:label "Task output: decision" ;
     prov:wasDerivedFrom jh:art-situation ;
     prov:wasGeneratedBy jh:act-decision ;
     jh:artifactType "semantic_extraction" ;
-    jh:contentHash "19ba65107345fccac0467afab7caec16d8875e0f3d416477d18d91f4e18da8cc" .
+    jh:contentHash "5858648de07d54ffbc775c54a556b8a2b9f2709a483eb2a75a8849fbd1036438" .
 
 jh:art-sensor a prov:Entity ;
     rdfs:label "Task output: sensor" ;
@@ -139,7 +147,7 @@ jh:art-situation a prov:Entity ;
     prov:wasDerivedFrom jh:art-sensor ;
     prov:wasGeneratedBy jh:act-situation ;
     jh:artifactType "semantic_extraction" ;
-    jh:contentHash "9ed19005f9af5dd57d84f6bcd3c844ea3d3fe632550f76a7358d76e85e25e43f" .
+    jh:contentHash "d4442380e3a8bb027ae1166447a2156c70f8d9795b2cd328c510aba89ec356d3" .
 
 <did:hospital:dr-chen> a prov:Agent ;
     rdfs:label "did:hospital:dr-chen" ;

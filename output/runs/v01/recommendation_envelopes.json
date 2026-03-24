@@ -1,0 +1,575 @@
+[
+  {
+    "context_id": "ctx-087606c1-21e9-4aec-b2f5-159940028a3c",
+    "schema_version": "jh:0.3",
+    "producer": "did:ecommerce:profile-agent",
+    "created_at": "2026-03-24T21:48:33.883951+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "product_recommendation",
+    "semantic_payload": [
+      {
+        "@model": "UserML",
+        "layers": {
+          "observation": [
+            {
+              "subject": "U-98765",
+              "predicate": "browse_event",
+              "object": {
+                "category": "footwear",
+                "item": "running shoes",
+                "brands": [
+                  "Nike",
+                  "Adidas"
+                ]
+              }
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "browse_event",
+              "object": {
+                "category": "electronics",
+                "item": "wireless headphones"
+              }
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "browse_event",
+              "object": {
+                "category": "fitness",
+                "item": "yoga mats"
+              }
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "browse_event",
+              "object": {
+                "category": "nutrition",
+                "item": "protein powder"
+              }
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "browse_event",
+              "object": {
+                "category": "wearables",
+                "item": "fitness trackers"
+              }
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "purchase_event",
+              "object": {
+                "category": "footwear",
+                "item": "Nike Air Zoom Pegasus 40",
+                "price": 120,
+                "currency": "USD"
+              }
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "purchase_event",
+              "object": {
+                "category": "electronics",
+                "item": "Bose QuietComfort 45",
+                "price": 280,
+                "currency": "USD"
+              }
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "purchase_event",
+              "object": {
+                "category": "fitness",
+                "item": "Manduka PRO yoga mat",
+                "price": 120,
+                "currency": "USD"
+              }
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "purchase_event",
+              "object": {
+                "category": "wearables",
+                "item": "Garmin Venu 3",
+                "price": 450,
+                "currency": "USD"
+              }
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "price_preference",
+              "object": {
+                "min": 100,
+                "max": 450,
+                "currency": "USD",
+                "average_spend": 242.5
+              }
+            }
+          ],
+          "interpretation": [
+            {
+              "subject": "U-98765",
+              "predicate": "category_affinity",
+              "object": {
+                "category": "fitness",
+                "score": 0.95
+              },
+              "confidence": 0.95
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "category_affinity",
+              "object": {
+                "category": "electronics",
+                "score": 0.88
+              },
+              "confidence": 0.88
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "category_affinity",
+              "object": {
+                "category": "footwear",
+                "score": 0.9
+              },
+              "confidence": 0.9
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "category_affinity",
+              "object": {
+                "category": "wearables",
+                "score": 0.92
+              },
+              "confidence": 0.92
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "brand_preference",
+              "object": {
+                "brand": "Nike",
+                "score": 0.9
+              },
+              "confidence": 0.9
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "brand_preference",
+              "object": {
+                "brand": "Bose",
+                "score": 0.88
+              },
+              "confidence": 0.88
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "brand_preference",
+              "object": {
+                "brand": "Garmin",
+                "score": 0.92
+              },
+              "confidence": 0.92
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "brand_preference",
+              "object": {
+                "brand": "Manduka",
+                "score": 0.85
+              },
+              "confidence": 0.85
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "price_sensitivity",
+              "object": "medium-to-premium",
+              "confidence": 0.9
+            },
+            {
+              "subject": "U-98765",
+              "predicate": "seasonal_pattern",
+              "object": {
+                "pattern": "fitness_focused",
+                "intensity": "high"
+              },
+              "confidence": 0.88
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-profile",
+        "type": "semantic_extraction",
+        "content_hash": "c8efb77fada48e92c304bb3202daa7b2701b11f245eccaca067c1bd0d059fc92",
+        "timestamp": "2026-03-24T21:48:33.883995+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-profile",
+    "decision_influence": [
+      {
+        "agent": "UserProfileAnalyst",
+        "categories": [
+          "user_segmentation",
+          "preference_extraction",
+          "behavioral_analytics",
+          "product_recommendation"
+        ],
+        "abstraction_level": "situation",
+        "temporal_scope": "current",
+        "influence_weights": {},
+        "confidence": 0.0
+      }
+    ],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "low",
+      "human_oversight_required": false,
+      "forwarding_policy": "raw_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "0b26fc6bc04da5e2ac849f2ffc65987c6008becaeab639cafe6399e9b927fe4f",
+      "signature": "oV--xieV1vsB_8vuvgU8eAHyNqyQJLfE68CYsC6v3vVQnoR3K32JvPmn3tObbaJUPRc7vr4gLAtPLD-QJyOyBg==",
+      "signer": "did:ecommerce:profile-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@type": "jh:Envelope"
+  },
+  {
+    "context_id": "ctx-bb40c420-1d5a-476f-a555-072f2059a1cd",
+    "schema_version": "jh:0.3",
+    "producer": "did:ecommerce:search-agent",
+    "created_at": "2026-03-24T21:48:40.756481+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "product_recommendation",
+    "semantic_payload": [
+      {
+        "@model": "UserML",
+        "layers": {
+          "observation": [],
+          "interpretation": [
+            {
+              "subject": "product-001",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.96,
+                "product": "Nike Air Zoom Pegasus 41",
+                "category": "footwear",
+                "price": 130,
+                "brand": "Nike"
+              },
+              "confidence": 0.96
+            },
+            {
+              "subject": "product-002",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.94,
+                "product": "Garmin Epix Gen 2",
+                "category": "wearables",
+                "price": 429,
+                "brand": "Garmin"
+              },
+              "confidence": 0.94
+            },
+            {
+              "subject": "product-003",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.93,
+                "product": "Bose QuietComfort Ultra",
+                "category": "electronics",
+                "price": 299,
+                "brand": "Bose"
+              },
+              "confidence": 0.93
+            },
+            {
+              "subject": "product-004",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.92,
+                "product": "Adidas Ultraboost 23",
+                "category": "footwear",
+                "price": 180,
+                "brand": "Adidas"
+              },
+              "confidence": 0.92
+            },
+            {
+              "subject": "product-005",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.91,
+                "product": "Manduka eKO Lite Yoga Mat",
+                "category": "fitness",
+                "price": 88,
+                "brand": "Manduka"
+              },
+              "confidence": 0.91
+            },
+            {
+              "subject": "product-006",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.9,
+                "product": "Sony WH-1000XM5",
+                "category": "electronics",
+                "price": 399,
+                "brand": "Sony"
+              },
+              "confidence": 0.9
+            },
+            {
+              "subject": "product-007",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.89,
+                "product": "Nike Metcon 9",
+                "category": "footwear",
+                "price": 150,
+                "brand": "Nike"
+              },
+              "confidence": 0.89
+            },
+            {
+              "subject": "product-008",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.88,
+                "product": "Whoop 4.0 Fitness Tracker",
+                "category": "wearables",
+                "price": 288,
+                "brand": "Whoop"
+              },
+              "confidence": 0.88
+            },
+            {
+              "subject": "product-009",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.87,
+                "product": "Optimum Nutrition Gold Standard Whey",
+                "category": "nutrition",
+                "price": 45,
+                "brand": "Optimum Nutrition"
+              },
+              "confidence": 0.87
+            },
+            {
+              "subject": "product-010",
+              "predicate": "category_affinity",
+              "object": {
+                "match_score": 0.86,
+                "product": "Adidas Terrex Swift R3 GTX",
+                "category": "footwear",
+                "price": 160,
+                "brand": "Adidas"
+              },
+              "confidence": 0.86
+            }
+          ],
+          "situation": [
+            {
+              "subject": "U-98765",
+              "predicate": "isInSituation",
+              "object": "active_shopper_fitness_focused",
+              "confidence": 0.92
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-search",
+        "type": "semantic_extraction",
+        "content_hash": "53e9087055b0e910955d4859ec83652f7152aa0b0a35af1ef17f4407e1988571",
+        "timestamp": "2026-03-24T21:48:40.756592+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-search",
+    "decision_influence": [
+      {
+        "agent": "Product Search Agent",
+        "categories": [
+          "product_recommendation",
+          "category_matching",
+          "relevance_ranking",
+          "price_alignment",
+          "brand_preference"
+        ],
+        "abstraction_level": "situation",
+        "temporal_scope": "current",
+        "influence_weights": {},
+        "confidence": 0.0
+      }
+    ],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "low",
+      "human_oversight_required": false,
+      "forwarding_policy": "raw_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "e82f6453abfddc21c3cafb366670ab66af664820711024483c57cdf781586766",
+      "signature": "tL7OxidV0G1ijJNL2FjiNC27vdwaiwv4WxD0GzQFEYQRgJVlZ4cJWDr4H_b3QY-qGkYiNQpdbcNiHTOGUl4LAw==",
+      "signer": "did:ecommerce:search-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@type": "jh:Envelope"
+  },
+  {
+    "context_id": "ctx-b2c90cf3-64fe-40d0-96d5-a4f51a596d0d",
+    "schema_version": "jh:0.3",
+    "producer": "did:ecommerce:personalize-agent",
+    "created_at": "2026-03-24T21:48:56.327406+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "product_recommendation",
+    "semantic_payload": [
+      {
+        "@model": "UserML",
+        "layers": {
+          "observation": [],
+          "interpretation": [],
+          "situation": [],
+          "application": [
+            {
+              "predicate": "recommended_product",
+              "object": {
+                "name": "Nike Air Zoom Pegasus 41",
+                "price": 130.0,
+                "confidence": 0.96
+              }
+            },
+            {
+              "predicate": "personalization_explanation",
+              "object": "You recently purchased the Nike Air Zoom Pegasus 40 and have a strong affinity for both the footwear category (score: 0.90) and the Nike brand (score: 0.90). The Pegasus 41 is the natural next-generation upgrade \u2014 same trusted fit and performance you love, now with refined cushioning and updated responsiveness. At $130, it sits comfortably within your preferred spending range of $100\u2013$450."
+            },
+            {
+              "predicate": "recommendation_confidence",
+              "object": 0.96
+            },
+            {
+              "predicate": "recommended_product",
+              "object": {
+                "name": "Garmin Epix Gen 2",
+                "price": 429.0,
+                "confidence": 0.94
+              }
+            },
+            {
+              "predicate": "personalization_explanation",
+              "object": "Your purchase of the Garmin Venu 3 at $450 signals a clear preference for premium Garmin wearables (brand score: 0.92, wearables affinity: 0.92). The Garmin Epix Gen 2 complements your fitness-focused lifestyle with an AMOLED display, advanced health metrics, and multi-sport GPS tracking. Priced at $429 \u2014 just within your upper price threshold \u2014 it represents a compelling lateral upgrade that deepens your Garmin ecosystem."
+            },
+            {
+              "predicate": "recommendation_confidence",
+              "object": 0.94
+            },
+            {
+              "predicate": "recommended_product",
+              "object": {
+                "name": "Bose QuietComfort Ultra",
+                "price": 299.0,
+                "confidence": 0.93
+              }
+            },
+            {
+              "predicate": "personalization_explanation",
+              "object": "Having already invested in the Bose QuietComfort 45, you clearly value premium audio quality and the Bose brand (score: 0.88, electronics affinity: 0.88). The QuietComfort Ultra is Bose's flagship step-up, delivering immersive spatial audio and CustomTune technology for an even richer listening experience \u2014 ideal for workouts, travel, and focus sessions. At $299, it aligns well with your average spend of $242.50 and sits comfortably within your price range."
+            },
+            {
+              "predicate": "recommendation_confidence",
+              "object": 0.93
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-personalize",
+        "type": "semantic_extraction",
+        "content_hash": "42972d9c6d02aa8df0eb306f50489500dd23f87e3b9c5bb599890f217cc07409",
+        "timestamp": "2026-03-24T21:48:56.327525+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-personalize",
+    "decision_influence": [
+      {
+        "agent": "Personalization Agent",
+        "categories": [
+          "user_preferences",
+          "product_relevance",
+          "price_fit"
+        ],
+        "abstraction_level": "situation",
+        "temporal_scope": "current",
+        "influence_weights": {},
+        "confidence": 0.0
+      }
+    ],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "low",
+      "human_oversight_required": false,
+      "forwarding_policy": "raw_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "674dbb011caf7179a92edb289c2f6fbc621ad4f0028d42fa2e7e3dbc784436b3",
+      "signature": "Lkp3W0NTP3YQe3sfVn1jfG1SXDzbKwDoz5rYqIICB3EYNTqvQ-ANzvB_P-z4isOQG8tOEkalZ3TSD4CKwx0jCw==",
+      "signer": "did:ecommerce:personalize-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#"
+    },
+    "@type": "jh:Envelope"
+  }
+]
