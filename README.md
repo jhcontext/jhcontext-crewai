@@ -790,47 +790,72 @@ Validated by:
 After running scenarios, use `--validate` to produce a structured validation report
 matching the paper's tables.
 
-### Running Validation
+### Running Scenarios + Validation
+
+Each run is saved to a versioned directory (`output/runs/v01/`, `v02/`, etc.):
 
 ```bash
-# Step 1: Run all scenarios
-python -m agent.run --scenario all
+# Run all scenarios (creates output/runs/v01/)
+python -m agent.run --local --scenario all
 
-# Step 2: Validate outputs
+# Validate the latest run
 python -m agent.run --validate
+
+# Validate a specific run
+python -m agent.run --validate v01
 ```
 
-### Expected Output
+### Run Directory Structure
 
 ```
-TABLE 1: Artifact Characteristics
-======================================================================
-Metric                              Healthcare  Education  Recommend
-----------------------------------------------------------------------
-Envelope size (bytes)                     ~5800      ~3600      ~4000
-PROV graph size (bytes)                   ~4900      ~1700      ~2000
-Entity count                                 10          2          3
-Activity count                               12          2          3
-Agent count                                   5          2          3
-
-TABLE 2: Audit Results
-======================================================================
-Check                          Healthcare    Education    Recommend
-----------------------------------------------------------------------
-temporal_oversight                   PASS          n/a          n/a
-integrity                            PASS         PASS         PASS
-workflow_isolation                    n/a         PASS          n/a
-negative_proof                        n/a         PASS          n/a
-semantic_conformance                 PASS         PASS         PASS
+output/
+├── runs/
+│   ├── v01/                              ← first run
+│   │   ├── healthcare_envelope.json      ← full JSON-LD envelope
+│   │   ├── healthcare_prov.ttl           ← W3C PROV graph (Turtle)
+│   │   ├── healthcare_audit.json         ← programmatic + narrative audit
+│   │   ├── healthcare_metrics.json       ← per-step timing
+│   │   ├── education_grading_envelope.json
+│   │   ├── education_grading_prov.ttl
+│   │   ├── education_equity_prov.ttl
+│   │   ├── education_audit.json
+│   │   ├── recommendation_envelope.json
+│   │   ├── recommendation_prov.ttl
+│   │   ├── validation_report.json        ← full machine-readable report
+│   │   └── summary.md                    ← human-readable interpretation
+│   ├── v02/                              ← second run
+│   │   └── ...
+│   └── ...
+└── latest → runs/v02/                    ← symlink to most recent run
 ```
 
-The full report is saved to `output/validation_report.json`.
+Runs are **committed to git** so results are versioned alongside the code.
+
+### Interpreting Results
+
+Each run's `summary.md` contains a full interpretation guide. The key checks:
+
+| Check | Article | Scenario | What it proves |
+|-------|---------|----------|---------------|
+| `temporal_oversight` | Art. 14 | Healthcare | Physician accessed 4 source documents AFTER AI recommendation, with meaningful review duration |
+| `integrity` | Art. 15 | All | Envelope hash + signature are valid (tamper-evidence) |
+| `workflow_isolation` | Art. 13 | Education | Zero shared PROV entities between grading and equity workflows |
+| `negative_proof` | Art. 13 | Education | No identity/demographic artifacts in the grading dependency chain |
+| `semantic_conformance` | — | All | Semantic payload uses valid UserML predicates from domain ontology |
+| `risk_level` | Art. 9 | All | Envelope risk tier matches expected value |
+| `forwarding_policy` | — | All | Forwarding policy matches expected pattern (semantic/raw) |
+
+- **PASS** — check succeeded against the protocol specification
+- **FAIL** — violation found (details in `validation_report.json`)
+- **n/a** — check does not apply to this scenario
 
 ### Semantic Payload Conformance
 
-The validation script checks that each scenario's `semantic_payload` uses the UserML
-format with valid domain predicates from `agent/ontologies/`. This is a post-hoc check —
-if LLM agents produce non-conforming output, the validation will flag it.
+This check verifies LLM agents produced payloads in UserML format with valid domain
+predicates from `agent/ontologies/`. Failures mean the LLM wrote free-form JSON instead
+of structured UserML — the protocol still functions, but payloads are not formally typed.
+Use `FlatEnvelope` with `output_pydantic` to enforce stricter structure (see jhcontext-sdk
+README).
 
 ## Local Development (Without AWS)
 

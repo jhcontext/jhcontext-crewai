@@ -1,0 +1,51 @@
+{
+  "context_id": "ctx-299fc3eb-769d-42e3-be9b-37ba1b049906",
+  "total_ms": 169053.25,
+  "steps": [
+    {
+      "step": "sensor",
+      "agent": "did:hospital:sensor-agent",
+      "artifact_id": "art-sensor",
+      "content_size_bytes": 653,
+      "persist_ms": 0,
+      "started_at": "2026-03-24T13:13:20.522316+00:00",
+      "ended_at": "2026-03-24T13:13:20.522316+00:00"
+    },
+    {
+      "step": "situation",
+      "agent": "did:hospital:situation-agent",
+      "artifact_id": "art-situation",
+      "content_size_bytes": 1356,
+      "persist_ms": 0,
+      "started_at": "2026-03-24T13:13:26.228164+00:00",
+      "ended_at": "2026-03-24T13:13:26.228164+00:00"
+    },
+    {
+      "step": "decision",
+      "agent": "did:hospital:decision-agent",
+      "artifact_id": "art-decision",
+      "content_size_bytes": 3712,
+      "persist_ms": 0,
+      "started_at": "2026-03-24T13:13:45.100116+00:00",
+      "ended_at": "2026-03-24T13:13:45.100116+00:00"
+    },
+    {
+      "step": "oversight",
+      "agent": "did:hospital:dr-chen",
+      "artifact_id": "art-oversight",
+      "content_size_bytes": 3156,
+      "persist_ms": 0,
+      "started_at": "2026-03-24T13:13:45.512284+00:00",
+      "ended_at": "2026-03-24T13:14:13.218850+00:00"
+    },
+    {
+      "step": "audit",
+      "agent": "did:hospital:audit-agent",
+      "artifact_id": "art-audit",
+      "content_size_bytes": 11987,
+      "persist_ms": 180.78,
+      "started_at": "2026-03-24T13:14:13.259704+00:00",
+      "ended_at": "2026-03-24T13:15:09.155722+00:00"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+@prefix jh: <https://jhcontext.com/vocab#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+jh:art-grading a prov:Entity ;
+    rdfs:label "Output of grading" ;
+    prov:wasDerivedFrom jh:art-ingestion ;
+    prov:wasGeneratedBy jh:act-grading ;
+    jh:artifactType "semantic_extraction" ;
+    jh:contentHash "5e6b76fbe70b2376639376280fba67a4be5392c7c274b54bec185ded58ab1740" .
+
+<did:university:grading-agent> a prov:Agent ;
+    rdfs:label "did:university:grading-agent" ;
+    jh:role "grading" .
+
+<did:university:ingestion-agent> a prov:Agent ;
+    rdfs:label "did:university:ingestion-agent" ;
+    jh:role "ingestion" .
+
+jh:act-grading a prov:Activity ;
+    rdfs:label "grading" ;
+    prov:endedAtTime "2026-03-24T13:17:07.367007+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T13:17:02.825657+00:00"^^xsd:dateTime ;
+    prov:used jh:art-ingestion ;
+    prov:wasAssociatedWith <did:university:grading-agent> .
+
+jh:act-ingestion a prov:Activity ;
+    rdfs:label "ingestion" ;
+    prov:endedAtTime "2026-03-24T13:16:59.822479+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T13:16:54.038865+00:00"^^xsd:dateTime ;
+    prov:wasAssociatedWith <did:university:ingestion-agent> .
+
+jh:art-ingestion a prov:Entity ;
+    rdfs:label "Output of ingestion" ;
+    prov:wasGeneratedBy jh:act-ingestion ;
+    jh:artifactType "token_sequence" ;
+    jh:contentHash "657a18159264757a1636eb24dd32e42f5224d3690dd561952aac24d2e397da63" .
+

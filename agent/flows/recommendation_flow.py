@@ -23,7 +23,7 @@ from agent.protocol.context_mixin import ContextMixin
 
 from jhcontext import RiskLevel
 
-OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+import agent.output_dir as _out
 
 
 class RecommendationFlow(Flow, ContextMixin):
@@ -38,7 +38,7 @@ class RecommendationFlow(Flow, ContextMixin):
 
     @start()
     def init(self):
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        _out.current.mkdir(parents=True, exist_ok=True)
 
         context_id = self._init_context(
             scope="product_recommendation",
@@ -88,16 +88,16 @@ class RecommendationFlow(Flow, ContextMixin):
         if envelope is None:
             envelope = builder.sign("did:ecommerce:rec-system").build()
             envelope = envelope.to_jsonld()
-        (OUTPUT_DIR / "recommendation_envelope.json").write_text(
+        (_out.current / "recommendation_envelope.json").write_text(
             json.dumps(envelope, indent=2)
         )
 
         # PROV graph
         prov_turtle = self.state["_prov"].serialize("turtle")
-        (OUTPUT_DIR / "recommendation_prov.ttl").write_text(prov_turtle)
+        (_out.current / "recommendation_prov.ttl").write_text(prov_turtle)
 
         # Recommendation output
-        (OUTPUT_DIR / "recommendation_output.json").write_text(
+        (_out.current / "recommendation_output.json").write_text(
             json.dumps(
                 {"context_id": context_id, "recommendations": recommendation_output},
                 indent=2,
@@ -106,12 +106,12 @@ class RecommendationFlow(Flow, ContextMixin):
 
         # Metrics
         metrics = self._finalize_metrics()
-        (OUTPUT_DIR / "recommendation_metrics.json").write_text(
+        (_out.current / "recommendation_metrics.json").write_text(
             json.dumps(metrics, indent=2)
         )
 
         self._cleanup()
-        print(f"[Recommendation] Outputs saved to {OUTPUT_DIR}/")
+        print(f"[Recommendation] Outputs saved to {_out.current}/")
 
     @staticmethod
     def _default_user() -> dict:

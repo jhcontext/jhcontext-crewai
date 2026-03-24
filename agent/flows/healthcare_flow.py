@@ -36,7 +36,7 @@ from jhcontext.audit import (
     verify_temporal_oversight,
 )
 
-OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+import agent.output_dir as _out
 
 # Simulated document-access durations (seconds).
 # Production would use real physician interaction times.
@@ -58,7 +58,7 @@ class HealthcareFlow(Flow, ContextMixin):
 
     @start()
     def init(self):
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        _out.current.mkdir(parents=True, exist_ok=True)
 
         context_id = self._init_context(
             scope="healthcare_treatment_recommendation",
@@ -221,13 +221,13 @@ class HealthcareFlow(Flow, ContextMixin):
         if envelope is None:
             envelope = builder.sign("did:hospital:system").build()
             envelope = envelope.to_jsonld()
-        (OUTPUT_DIR / "healthcare_envelope.json").write_text(
+        (_out.current / "healthcare_envelope.json").write_text(
             json.dumps(envelope, indent=2)
         )
 
         # PROV graph
         prov_turtle = self.state["_prov"].serialize("turtle")
-        (OUTPUT_DIR / "healthcare_prov.ttl").write_text(prov_turtle)
+        (_out.current / "healthcare_prov.ttl").write_text(prov_turtle)
 
         # Audit report — combined programmatic + narrative
         audit_data = {
@@ -236,18 +236,18 @@ class HealthcareFlow(Flow, ContextMixin):
             "narrative_audit": audit_output,
             "overall_passed": programmatic_report.overall_passed if programmatic_report else None,
         }
-        (OUTPUT_DIR / "healthcare_audit.json").write_text(
+        (_out.current / "healthcare_audit.json").write_text(
             json.dumps(audit_data, indent=2)
         )
 
         # Metrics
         metrics = self._finalize_metrics()
-        (OUTPUT_DIR / "healthcare_metrics.json").write_text(
+        (_out.current / "healthcare_metrics.json").write_text(
             json.dumps(metrics, indent=2)
         )
 
         self._cleanup()
-        print(f"[Healthcare] Outputs saved to {OUTPUT_DIR}/")
+        print(f"[Healthcare] Outputs saved to {_out.current}/")
 
     @staticmethod
     def _default_patient() -> dict:

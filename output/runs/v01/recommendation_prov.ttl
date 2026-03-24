@@ -1,0 +1,57 @@
+@prefix jh: <https://jhcontext.com/vocab#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+jh:art-personalize a prov:Entity ;
+    rdfs:label "Task output: personalize" ;
+    prov:wasDerivedFrom jh:art-search ;
+    prov:wasGeneratedBy jh:act-personalize ;
+    jh:artifactType "semantic_extraction" ;
+    jh:contentHash "7e5b54989a20227d957b2ffcf1fd27b44db37fd4a59fe22d1eedefe796d8ed73" .
+
+<did:ecommerce:personalize-agent> a prov:Agent ;
+    rdfs:label "did:ecommerce:personalize-agent" ;
+    jh:role "personalize" .
+
+<did:ecommerce:profile-agent> a prov:Agent ;
+    rdfs:label "did:ecommerce:profile-agent" ;
+    jh:role "profile" .
+
+<did:ecommerce:search-agent> a prov:Agent ;
+    rdfs:label "did:ecommerce:search-agent" ;
+    jh:role "search" .
+
+jh:act-personalize a prov:Activity ;
+    rdfs:label "personalize" ;
+    prov:endedAtTime "2026-03-24T13:19:32.350533+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T13:19:32.350533+00:00"^^xsd:dateTime ;
+    prov:used jh:art-search ;
+    prov:wasAssociatedWith <did:ecommerce:personalize-agent> .
+
+jh:act-profile a prov:Activity ;
+    rdfs:label "profile" ;
+    prov:endedAtTime "2026-03-24T13:19:04.904558+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T13:19:04.904558+00:00"^^xsd:dateTime ;
+    prov:wasAssociatedWith <did:ecommerce:profile-agent> .
+
+jh:act-search a prov:Activity ;
+    rdfs:label "search" ;
+    prov:endedAtTime "2026-03-24T13:19:15.501393+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T13:19:15.501393+00:00"^^xsd:dateTime ;
+    prov:used jh:art-profile ;
+    prov:wasAssociatedWith <did:ecommerce:search-agent> .
+
+jh:art-profile a prov:Entity ;
+    rdfs:label "Task output: profile" ;
+    prov:wasGeneratedBy jh:act-profile ;
+    jh:artifactType "semantic_extraction" ;
+    jh:contentHash "dbe8e322bf78877717abc82c10405c658a8cf2f7a12d450588454b3dd8654105" .
+
+jh:art-search a prov:Entity ;
+    rdfs:label "Task output: search" ;
+    prov:wasDerivedFrom jh:art-profile ;
+    prov:wasGeneratedBy jh:act-search ;
+    jh:artifactType "semantic_extraction" ;
+    jh:contentHash "c0d315edc163e2f59aa829f9a125749db421cbd1cec9a51ab0061af7767865f3" .
+

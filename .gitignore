@@ -7,7 +7,7 @@ venv/
 *.egg-info/
 dist/
 build/
-output/
+output/latest
 api/.chalice/deployed/
 api/.chalice/deployments/
 mcp/.chalice/deployed/

@@ -1,0 +1,24 @@
+{
+  "context_id": "ctx-bdd9b800-bca2-440a-9cb0-83c695181aab",
+  "total_ms": 13617.97,
+  "steps": [
+    {
+      "step": "ingestion",
+      "agent": "did:university:ingestion-agent",
+      "artifact_id": "art-ingestion",
+      "content_size_bytes": 1699,
+      "persist_ms": 2994.46,
+      "started_at": "2026-03-24T13:16:54.038865+00:00",
+      "ended_at": "2026-03-24T13:16:59.822479+00:00"
+    },
+    {
+      "step": "grading",
+      "agent": "did:university:grading-agent",
+      "artifact_id": "art-grading",
+      "content_size_bytes": 1104,
+      "persist_ms": 157.63,
+      "started_at": "2026-03-24T13:17:02.825657+00:00",
+      "ended_at": "2026-03-24T13:17:07.367007+00:00"
+    }
+  ]
+}

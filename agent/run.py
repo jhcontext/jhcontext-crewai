@@ -19,7 +19,6 @@ import time
 from contextlib import contextmanager
 from pathlib import Path
 
-OUTPUT_DIR = Path(__file__).parent.parent / "output"
 LOCAL_PORT = 8400
 LOCAL_URL = f"http://localhost:{LOCAL_PORT}"
 
@@ -202,7 +201,11 @@ def run_recommendation():
 
 def _run_scenarios(args):
     """Dispatch scenario execution based on parsed args."""
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    from agent.output_dir import next_run_dir, set_current
+
+    run_dir = next_run_dir()
+    set_current(run_dir)
+    print(f"Run directory: {run_dir}\n")
 
     if args.scenario in ("healthcare", "all"):
         run_healthcare()
@@ -215,12 +218,13 @@ def _run_scenarios(args):
 
     # Print summary
     print("\n" + "=" * 60)
-    print("ALL SCENARIOS COMPLETE")
+    print(f"ALL SCENARIOS COMPLETE — {run_dir.name}")
     print("=" * 60)
-    output_files = sorted(OUTPUT_DIR.glob("*"))
+    output_files = sorted(run_dir.glob("*"))
     for f in output_files:
-        size = f.stat().st_size
-        print(f"  {f.name:45s} {size:>8,d} bytes")
+        if f.is_file():
+            size = f.stat().st_size
+            print(f"  {f.name:45s} {size:>8,d} bytes")
 
 
 # ── Main ─────────────────────────────────────────────────────────
@@ -240,13 +244,38 @@ def main():
     )
     parser.add_argument(
         "--validate",
-        action="store_true",
-        help="Run post-execution validation on output/ files",
+        nargs="?",
+        const="latest",
+        default=None,
+        metavar="RUN",
+        help="Validate a run (default: latest). Use run name e.g. --validate v01",
     )
     args = parser.parse_args()
 
-    if args.validate:
+    if args.validate is not None:
+        from agent.output_dir import RUNS_DIR, LATEST_LINK, set_current
         from agent.validate import run_validation
+
+        run_name = args.validate
+        if run_name == "latest":
+            if LATEST_LINK.exists():
+                set_current(LATEST_LINK.resolve())
+            elif RUNS_DIR.exists():
+                runs = sorted(RUNS_DIR.glob("v[0-9][0-9]"))
+                if runs:
+                    set_current(runs[-1])
+                else:
+                    print("ERROR: No runs found. Run scenarios first.")
+                    sys.exit(1)
+            else:
+                print("ERROR: No runs found. Run scenarios first.")
+                sys.exit(1)
+        else:
+            target = RUNS_DIR / run_name
+            if not target.exists():
+                print(f"ERROR: Run '{run_name}' not found at {target}")
+                sys.exit(1)
+            set_current(target)
 
         sys.exit(run_validation())
 

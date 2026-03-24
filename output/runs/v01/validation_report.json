@@ -1,0 +1,237 @@
+{
+  "scenarios": [
+    {
+      "scenario": "healthcare",
+      "checks": {
+        "risk_level": {
+          "passed": true,
+          "value": "high"
+        },
+        "forwarding_policy": {
+          "passed": true,
+          "value": "semantic_forward"
+        },
+        "semantic_conformance": {
+          "passed": false,
+          "message": "No UserML payload found in envelope"
+        },
+        "temporal_oversight": {
+          "passed": true,
+          "evidence": {
+            "ai_activity": "act-decision",
+            "ai_timestamp": "2026-03-24T13:13:45.100116+00:00",
+            "human_activities_after_ai": [
+              "act-access-ct-scan",
+              "act-access-history",
+              "act-access-pathology",
+              "act-review-ai"
+            ],
+            "total_review_seconds": 10.000782000000001,
+            "min_required_seconds": 5.0
+          },
+          "message": "Human oversight verified: 4/4 activities after AI, 10s review time"
+        },
+        "integrity": {
+          "passed": false,
+          "evidence": {
+            "content_hash": "b5ea96093962f1f0b0b3d4f4ba8b8301d430d20b2505f92ddb2285ba74a511d8",
+            "signer": "did:hospital:sensor-agent",
+            "has_signature": true
+          },
+          "message": "INTEGRITY FAILURE: hash or signature mismatch"
+        },
+        "overall_passed": {
+          "passed": false
+        }
+      },
+      "metrics": {
+        "envelope_bytes": 3682,
+        "prov_bytes": 5608,
+        "entity_count": 9,
+        "activity_count": 9,
+        "agent_count": 5,
+        "artifact_count": 5,
+        "performance": {
+          "context_id": "ctx-299fc3eb-769d-42e3-be9b-37ba1b049906",
+          "total_ms": 169053.25,
+          "steps": [
+            {
+              "step": "sensor",
+              "agent": "did:hospital:sensor-agent",
+              "artifact_id": "art-sensor",
+              "content_size_bytes": 653,
+              "persist_ms": 0,
+              "started_at": "2026-03-24T13:13:20.522316+00:00",
+              "ended_at": "2026-03-24T13:13:20.522316+00:00"
+            },
+            {
+              "step": "situation",
+              "agent": "did:hospital:situation-agent",
+              "artifact_id": "art-situation",
+              "content_size_bytes": 1356,
+              "persist_ms": 0,
+              "started_at": "2026-03-24T13:13:26.228164+00:00",
+              "ended_at": "2026-03-24T13:13:26.228164+00:00"
+            },
+            {
+              "step": "decision",
+              "agent": "did:hospital:decision-agent",
+              "artifact_id": "art-decision",
+              "content_size_bytes": 3712,
+              "persist_ms": 0,
+              "started_at": "2026-03-24T13:13:45.100116+00:00",
+              "ended_at": "2026-03-24T13:13:45.100116+00:00"
+            },
+            {
+              "step": "oversight",
+              "agent": "did:hospital:dr-chen",
+              "artifact_id": "art-oversight",
+              "content_size_bytes": 3156,
+              "persist_ms": 0,
+              "started_at": "2026-03-24T13:13:45.512284+00:00",
+              "ended_at": "2026-03-24T13:14:13.218850+00:00"
+            },
+            {
+              "step": "audit",
+              "agent": "did:hospital:audit-agent",
+              "artifact_id": "art-audit",
+              "content_size_bytes": 11987,
+              "persist_ms": 180.78,
+              "started_at": "2026-03-24T13:14:13.259704+00:00",
+              "ended_at": "2026-03-24T13:15:09.155722+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario": "education",
+      "checks": {
+        "workflow_isolation": {
+          "passed": true,
+          "evidence": {
+            "workflow_a_entities": 2,
+            "workflow_b_entities": 1,
+            "shared_entities": []
+          },
+          "message": "Workflows isolated: 2 + 1 entities, 0 shared"
+        },
+        "negative_proof": {
+          "passed": true,
+          "evidence": {
+            "decision_entity": "art-grading",
+            "dependency_chain": [
+              "art-ingestion"
+            ],
+            "excluded_types": [
+              "identity_data",
+              "demographic",
+              "biometric"
+            ],
+            "violations": []
+          },
+          "message": "Negative proof verified: 3 excluded types absent from 1 entities in chain"
+        },
+        "semantic_conformance": {
+          "passed": false,
+          "message": "No UserML payload found in grading envelope"
+        },
+        "audit_overall_passed": {
+          "passed": true
+        }
+      },
+      "metrics": {
+        "grading_envelope_bytes": 1809,
+        "grading_prov_bytes": 1543,
+        "equity_prov_bytes": 817,
+        "grading_entity_count": 2,
+        "grading_activity_count": 2,
+        "grading_agent_count": 2,
+        "equity_entity_count": 1,
+        "performance": {
+          "context_id": "ctx-bdd9b800-bca2-440a-9cb0-83c695181aab",
+          "total_ms": 13617.97,
+          "steps": [
+            {
+              "step": "ingestion",
+              "agent": "did:university:ingestion-agent",
+              "artifact_id": "art-ingestion",
+              "content_size_bytes": 1699,
+              "persist_ms": 2994.46,
+              "started_at": "2026-03-24T13:16:54.038865+00:00",
+              "ended_at": "2026-03-24T13:16:59.822479+00:00"
+            },
+            {
+              "step": "grading",
+              "agent": "did:university:grading-agent",
+              "artifact_id": "art-grading",
+              "content_size_bytes": 1104,
+              "persist_ms": 157.63,
+              "started_at": "2026-03-24T13:17:02.825657+00:00",
+              "ended_at": "2026-03-24T13:17:07.367007+00:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario": "recommendation",
+      "checks": {
+        "risk_level": {
+          "passed": true,
+          "value": "low"
+        },
+        "forwarding_policy": {
+          "passed": true,
+          "value": "raw_forward"
+        },
+        "semantic_conformance": {
+          "passed": false,
+          "message": "No UserML payload found in envelope"
+        }
+      },
+      "metrics": {
+        "envelope_bytes": 2982,
+        "prov_bytes": 2251,
+        "entity_count": 3,
+        "activity_count": 3,
+        "agent_count": 3,
+        "artifact_count": 3,
+        "performance": {
+          "context_id": "ctx-04c007ba-b4b0-4fd6-a0b5-94d1c090eefb",
+          "total_ms": 34868.62,
+          "steps": [
+            {
+              "step": "profile",
+              "agent": "did:ecommerce:profile-agent",
+              "artifact_id": "art-profile",
+              "content_size_bytes": 2674,
+              "persist_ms": 0,
+              "started_at": "2026-03-24T13:19:04.904558+00:00",
+              "ended_at": "2026-03-24T13:19:04.904558+00:00"
+            },
+            {
+              "step": "search",
+              "agent": "did:ecommerce:search-agent",
+              "artifact_id": "art-search",
+              "content_size_bytes": 2461,
+              "persist_ms": 0,
+              "started_at": "2026-03-24T13:19:15.501393+00:00",
+              "ended_at": "2026-03-24T13:19:15.501393+00:00"
+            },
+            {
+              "step": "personalize",
+              "agent": "did:ecommerce:personalize-agent",
+              "artifact_id": "art-personalize",
+              "content_size_bytes": 2257,
+              "persist_ms": 0,
+              "started_at": "2026-03-24T13:19:32.350533+00:00",
+              "ended_at": "2026-03-24T13:19:32.350533+00:00"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "overall_passed": false
+}

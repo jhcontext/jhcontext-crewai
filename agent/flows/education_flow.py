@@ -24,7 +24,7 @@ from agent.protocol.context_mixin import ContextMixin
 
 from jhcontext import ArtifactType, PROVGraph, RiskLevel
 
-OUTPUT_DIR = Path(__file__).parent.parent.parent / "output"
+import agent.output_dir as _out
 
 
 class EducationGradingFlow(Flow, ContextMixin):
@@ -36,7 +36,7 @@ class EducationGradingFlow(Flow, ContextMixin):
 
     @start()
     def init(self):
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        _out.current.mkdir(parents=True, exist_ok=True)
 
         context_id = self._init_context(
             scope="education_assessment_grading",
@@ -103,20 +103,20 @@ class EducationGradingFlow(Flow, ContextMixin):
         if envelope is None:
             envelope = builder.sign("did:university:grading-system").build()
             envelope = envelope.to_jsonld()
-        (OUTPUT_DIR / "education_grading_envelope.json").write_text(
+        (_out.current / "education_grading_envelope.json").write_text(
             json.dumps(envelope, indent=2)
         )
 
         prov_turtle = self.state["_prov"].serialize("turtle")
-        (OUTPUT_DIR / "education_grading_prov.ttl").write_text(prov_turtle)
+        (_out.current / "education_grading_prov.ttl").write_text(prov_turtle)
 
         metrics = self._finalize_metrics()
-        (OUTPUT_DIR / "education_grading_metrics.json").write_text(
+        (_out.current / "education_grading_metrics.json").write_text(
             json.dumps(metrics, indent=2)
         )
 
         self._cleanup()
-        print(f"[Education/Grading] Outputs saved to {OUTPUT_DIR}/")
+        print(f"[Education/Grading] Outputs saved to {_out.current}/")
         return grading_output
 
     @staticmethod
@@ -133,7 +133,7 @@ class EducationEquityFlow(Flow, ContextMixin):
 
     @start()
     def init(self):
-        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        _out.current.mkdir(parents=True, exist_ok=True)
 
         context_id = self._init_context(
             scope="education_equity_reporting",
@@ -161,10 +161,10 @@ class EducationEquityFlow(Flow, ContextMixin):
         )
 
         prov_turtle = self.state["_prov"].serialize("turtle")
-        (OUTPUT_DIR / "education_equity_prov.ttl").write_text(prov_turtle)
+        (_out.current / "education_equity_prov.ttl").write_text(prov_turtle)
 
         self._cleanup()
-        print(f"[Education/Equity] Outputs saved to {OUTPUT_DIR}/")
+        print(f"[Education/Equity] Outputs saved to {_out.current}/")
         return result.raw
 
     @staticmethod
@@ -186,8 +186,8 @@ class EducationAuditFlow(Flow):
         print("[Education/Audit] Verifying workflow isolation...")
 
         # Load both PROV graphs
-        grading_prov_path = OUTPUT_DIR / "education_grading_prov.ttl"
-        equity_prov_path = OUTPUT_DIR / "education_equity_prov.ttl"
+        grading_prov_path = _out.current / "education_grading_prov.ttl"
+        equity_prov_path = _out.current / "education_equity_prov.ttl"
 
         if not grading_prov_path.exists() or not equity_prov_path.exists():
             print("[Education/Audit] ERROR: Run grading and equity flows first.")
@@ -246,7 +246,7 @@ class EducationAuditFlow(Flow):
             "overall_passed": isolation_result.passed and negative_result.passed,
         }
 
-        (OUTPUT_DIR / "education_audit.json").write_text(json.dumps(report, indent=2))
+        (_out.current / "education_audit.json").write_text(json.dumps(report, indent=2))
         print(f"[Education/Audit] Overall: {'PASSED' if report['overall_passed'] else 'FAILED'}")
-        print(f"[Education/Audit] Report saved to {OUTPUT_DIR}/education_audit.json")
+        print(f"[Education/Audit] Report saved to {_out.current}/education_audit.json")
         return report

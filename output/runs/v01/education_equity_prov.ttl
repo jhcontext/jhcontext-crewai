@@ -1,0 +1,21 @@
+@prefix jh: <https://jhcontext.com/vocab#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+jh:art-equity a prov:Entity ;
+    rdfs:label "Output of equity" ;
+    prov:wasGeneratedBy jh:act-equity ;
+    jh:artifactType "semantic_extraction" ;
+    jh:contentHash "204ae2d0529fbaa9a14cb789a57bdf5e01a9b9277a6e062b24ab3d5f00765305" .
+
+<did:university:equity-agent> a prov:Agent ;
+    rdfs:label "did:university:equity-agent" ;
+    jh:role "equity" .
+
+jh:act-equity a prov:Activity ;
+    rdfs:label "equity" ;
+    prov:endedAtTime "2026-03-24T13:17:14.692439+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-03-24T13:17:07.772351+00:00"^^xsd:dateTime ;
+    prov:wasAssociatedWith <did:university:equity-agent> .
+
