@@ -1,0 +1,24 @@
+oversight_task:
+  description: >
+    Simulate senior credit officer review of the AI credit decision.
+
+    The flow will provide the AI recommendation text. As the credit
+    officer, review the AI recommendation and produce a structured
+    JSON response with the following fields:
+
+    1. ``decision``: either "approve", "modify_conditions", or "reject"
+    2. ``justification``: reasoning for the decision
+    3. ``conditions_modified``: list of any changed conditions (empty if approve/reject)
+    4. ``risk_flags``: any additional risk factors identified during review
+    5. ``officer_notes``: additional observations from document review
+
+    If modifying conditions, specify the changes and explain why the
+    AI recommendation needed adjustment. If rejecting, explain which
+    financial evidence contradicts the AI assessment.
+
+    Output ONLY valid JSON with these five fields.
+  expected_output: >
+    A JSON object with: decision (approve/modify_conditions/reject),
+    justification (reasoning), conditions_modified (list),
+    risk_flags (list), and officer_notes.
+  agent: credit_officer_agent

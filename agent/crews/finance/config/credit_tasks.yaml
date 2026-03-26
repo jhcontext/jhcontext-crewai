@@ -1,0 +1,146 @@
+data_collection_task:
+  description: >
+    {_forwarding_preamble}Collect financial data for loan application {applicant_id}.
+    Monthly income: EUR {monthly_income}, employment: {employment_type} for
+    {employer_tenure_months} months, existing monthly debt: EUR {existing_monthly_debt},
+    credit bureau score: {credit_bureau_score}, payment history on-time:
+    {payment_history_ontime_pct}%, loan purpose: {loan_purpose},
+    requested amount: EUR {requested_amount}.
+
+    CRITICAL COMPLIANCE REQUIREMENT: Do NOT include any protected attributes
+    (applicant name, gender, age, ethnicity, marital status, nationality,
+    religion, disability status) in your output. Only financial data.
+
+    Output a jhcontext protocol envelope. Place all financial observations
+    in the ``semantic_payload`` field using the **UserML format**:
+
+    {{"@model": "UserML", "layers": {{"observation": [
+      {{"subject": "{applicant_id}", "predicate": "income_source", "object": {{"type": "salary", "monthly_gross": {monthly_income}, "currency": "EUR"}}}},
+      {{"subject": "{applicant_id}", "predicate": "employment_record", "object": {{"type": "{employment_type}", "tenure_months": {employer_tenure_months}}}}},
+      {{"subject": "{applicant_id}", "predicate": "debt_obligation", "object": {{"monthly_payment": {existing_monthly_debt}}}}},
+      {{"subject": "{applicant_id}", "predicate": "payment_history", "object": {{"on_time_pct": {payment_history_ontime_pct}}}}},
+      {{"subject": "{applicant_id}", "predicate": "credit_bureau_score", "object": {credit_bureau_score}}}
+    ]}}}}
+
+    Valid observation predicates: income_source, employment_record,
+    debt_obligation, payment_history, credit_bureau_score, collateral_value.
+    Each entry MUST have subject, predicate, and object keys.
+
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-financial-data" and type="token_sequence".
+    Set scope="credit_assessment",
+    producer="did:bank:data-collector-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="raw_forward".
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing structured financial observations (income, employment,
+    debts, payment history, credit score) using valid finance predicates.
+    NO protected attributes (gender, ethnicity, age, etc.) present.
+    artifacts_registry with one TOKEN_SEQUENCE artifact, compliance
+    block set to high risk with human oversight required.
+  agent: data_collector_agent
+
+risk_analysis_task:
+  description: >
+    {_forwarding_preamble}You will receive a jhcontext protocol envelope
+    from the data collection task. Read the ``semantic_payload`` field —
+    this contains the applicant's financial observations.
+
+    Compute the following risk indicators:
+    1. Debt-to-income ratio (monthly_debt / monthly_income)
+    2. Payment reliability assessment (based on on-time percentage)
+    3. Employment stability (based on tenure and contract type)
+    4. Estimated default probability (0-1 scale)
+    5. Credit utilization assessment
+
+    Output a jhcontext protocol envelope. Place your risk analysis
+    in ``semantic_payload`` using the **UserML format** with interpretation
+    and situation layers:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [
+        {{"subject": "APPLICANT_ID", "predicate": "debt_to_income_ratio", "object": 0.32, "confidence": 0.95}},
+        {{"subject": "APPLICANT_ID", "predicate": "payment_reliability", "object": "good", "confidence": 0.90}},
+        {{"subject": "APPLICANT_ID", "predicate": "employment_stability", "object": "stable", "confidence": 0.92}},
+        {{"subject": "APPLICANT_ID", "predicate": "default_probability", "object": 0.04, "confidence": 0.88}}
+      ],
+      "situation": [
+        {{"subject": "APPLICANT_ID", "predicate": "isInSituation", "object": "creditworthy", "confidence": 0.88}}
+      ]
+    }}}}
+
+    Valid interpretation predicates: debt_to_income_ratio, payment_reliability,
+    employment_stability, credit_utilization, default_probability.
+    Valid situation types: creditworthy, moderate_risk, high_risk,
+    requires_manual_review.
+
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-risk-analysis" and type="semantic_extraction".
+    Set scope="credit_assessment",
+    producer="did:bank:risk-analyzer-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="semantic_forward".
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing interpretation and situation layers with valid finance
+    predicates (DTI, payment reliability, employment stability, default
+    probability), one SEMANTIC_EXTRACTION artifact, compliance block
+    set to high risk with semantic_forward policy.
+  agent: risk_analyzer_agent
+
+credit_decision_task:
+  description: >
+    {_forwarding_preamble}You will receive a jhcontext protocol envelope
+    from the risk analysis task. Read the ``semantic_payload`` field —
+    this contains the applicant's risk indicators.
+
+    Generate a credit decision with:
+    (a) Decision: approve / conditional_approval / deny / refer_to_officer
+    (b) Risk score (0-1000 scale)
+    (c) Explainable factors: list EVERY factor that influenced the decision
+        (EU AI Act Article 13 requires transparency)
+    (d) Conditions (if conditional_approval): list specific conditions
+    (e) Recommended interest rate and approved amount (if applicable)
+
+    IMPORTANT: The explanation_factors list is a legal requirement under
+    GDPR Article 22 — the applicant has the right to understand WHY
+    this decision was made and WHICH specific factors were considered.
+
+    Output a jhcontext protocol envelope. Place your decision in
+    ``semantic_payload`` using the **UserML format** with application layer:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [],
+      "situation": [
+        {{"subject": "APPLICANT_ID", "predicate": "isInSituation", "object": "creditworthy", "confidence": 0.88}}
+      ],
+      "application": [
+        {{"predicate": "credit_decision", "object": "conditional_approval"}},
+        {{"predicate": "risk_score", "object": 710}},
+        {{"predicate": "approved_amount", "object": {{"value": 25000, "currency": "EUR"}}}},
+        {{"predicate": "interest_rate", "object": {{"annual_pct": 6.9, "type": "fixed"}}}},
+        {{"predicate": "explanation_factors", "object": ["Stable employment", "Good payment history", "DTI within range"]}}
+      ]
+    }}}}
+
+    Valid application predicates: credit_decision, risk_score,
+    approved_amount, interest_rate, explanation_factors.
+
+    Register one artifact in ``artifacts_registry``
+    with artifact_id="art-credit-decision" and type="semantic_extraction".
+    Set scope="credit_assessment",
+    producer="did:bank:decision-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="semantic_forward".
+    Include decision_influence with categories like "risk_indicators",
+    "payment_history", "employment_factors" and influence_weights.
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing situation and application layers (credit decision,
+    risk score, approved amount, interest rate, explainable factors),
+    one SEMANTIC_EXTRACTION artifact, compliance block set to high risk
+    with oversight required, and decision_influence metadata.
+  agent: decision_agent

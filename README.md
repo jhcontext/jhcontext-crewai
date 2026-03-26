@@ -2,9 +2,10 @@
 
 Production deployment of the **PAC-AI protocol** with CrewAI agents on AWS.
 
-Multi-agent healthcare, education, and recommendation scenarios that demonstrate EU AI Act
-compliance (Articles 13 and 14) through auditable context envelopes, W3C PROV provenance
-graphs, and cryptographic integrity verification — all persisted on DynamoDB + S3.
+Multi-agent healthcare, education, recommendation, and finance scenarios that demonstrate
+EU AI Act compliance (Annex III 5(b), Articles 13 and 14) through auditable context
+envelopes, W3C PROV provenance graphs, and cryptographic integrity verification — all
+persisted on DynamoDB + S3.
 
 > **TL;DR:** This is the production-grade version of the jhcontext compliance scenarios — real CrewAI agents, AWS infrastructure (Chalice Lambda + DynamoDB + S3), and persistent storage. For a lightweight in-memory proof-of-concept with no infrastructure, see [jhcontext-usecases](../jhcontext-usecases/).
 
@@ -46,6 +47,7 @@ Each scenario demonstrates a different EU AI Act compliance pattern:
 | [Healthcare](docs/crews/healthcare.md) | Art. 14 — Human Oversight | HIGH | 5 (sensor → situation → decision → oversight → audit) | Temporal proof that physician reviewed docs AFTER AI recommendation |
 | [Education](docs/crews/education.md) | Art. 13 — Non-Discrimination | HIGH | 4 (ingestion → grading ╳ equity → audit) | Workflow isolation + negative proof (identity absent from grading) |
 | [Recommendation](docs/crews/recommendation.md) | LOW-risk | LOW | 3 (profile → search → personalize) | Full provenance with Raw-Forward policy |
+| [Finance](docs/crews/finance.md) | Annex III 5(b) — Composite | HIGH | 7 (data → risk → decision → oversight ╳ fair lending → audit) | All 4 patterns: negative proof + temporal oversight + workflow isolation + PII detachment |
 
 ## Crew Delegation in PROV
 
@@ -157,6 +159,7 @@ export JHCONTEXT_API_URL=https://{api-id}.execute-api.us-east-1.amazonaws.com/ap
 python -m agent.run --scenario healthcare
 python -m agent.run --scenario education
 python -m agent.run --scenario recommendation
+python -m agent.run --scenario finance
 python -m agent.run --scenario all
 ```
 
@@ -200,6 +203,7 @@ UserML semantic payloads.
 | [Healthcare](docs/crews/healthcare.md) | Art. 14 | 5 agents, 3 crews, Semantic-Forward, temporal oversight proof |
 | [Education](docs/crews/education.md) | Art. 13 | 4 agents, 3 isolated flows, workflow isolation + negative proof |
 | [Recommendation](docs/crews/recommendation.md) | LOW-risk | 3 agents, 1 crew, Raw-Forward, full provenance |
+| [Finance](docs/crews/finance.md) | Annex III 5(b) | 7 agents, 4 crews, composite compliance (all 4 patterns) |
 
 ## License
 

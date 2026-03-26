@@ -27,6 +27,13 @@ from agent.ontologies.recommendation import (
     recommendation_observations,
     sample_recommendation,
 )
+from agent.ontologies.finance import (
+    FINANCE_PREDICATES,
+    finance_observations,
+    finance_interpretations,
+    finance_payload,
+    sample_finance,
+)
 from agent.ontologies.validator import validate_semantic_payload
 
 
@@ -92,6 +99,75 @@ class TestRecommendationOntology:
         payload = sample_recommendation()
         valid, violations = validate_semantic_payload(payload, RECOMMENDATION_PREDICATES)
         assert valid, f"Violations: {violations}"
+
+
+class TestFinanceOntology:
+    def test_predicates_defined(self):
+        assert "income_source" in FINANCE_PREDICATES["observation"]
+        assert "employment_record" in FINANCE_PREDICATES["observation"]
+        assert "debt_obligation" in FINANCE_PREDICATES["observation"]
+        assert "payment_history" in FINANCE_PREDICATES["observation"]
+        assert "credit_bureau_score" in FINANCE_PREDICATES["observation"]
+        assert "debt_to_income_ratio" in FINANCE_PREDICATES["interpretation"]
+        assert "default_probability" in FINANCE_PREDICATES["interpretation"]
+        assert "creditworthy" in FINANCE_PREDICATES["situation"]
+        assert "credit_decision" in FINANCE_PREDICATES["application"]
+        assert "explanation_factors" in FINANCE_PREDICATES["application"]
+
+    def test_sample_finance_is_valid(self):
+        payload = sample_finance()
+        valid, violations = validate_semantic_payload(payload, FINANCE_PREDICATES)
+        assert valid, f"Violations: {violations}"
+
+    def test_finance_observations(self):
+        obs = finance_observations(
+            "APP-001",
+            income={"type": "salary", "monthly_gross": 3800},
+            employment={"type": "permanent", "tenure_months": 48},
+            debts=[{"type": "auto_loan", "monthly_payment": 280}],
+            payments={"on_time_pct": 96},
+            bureau_score=710,
+        )
+        assert len(obs) == 5
+        assert obs[0]["predicate"] == "income_source"
+        assert obs[1]["predicate"] == "employment_record"
+        assert obs[2]["predicate"] == "debt_obligation"
+        assert obs[3]["predicate"] == "payment_history"
+        assert obs[4]["predicate"] == "credit_bureau_score"
+
+    def test_finance_interpretations(self):
+        interps = finance_interpretations(
+            "APP-001",
+            dti=0.32,
+            payment_reliability="good",
+            employment_stability="stable",
+            default_prob=0.04,
+        )
+        assert len(interps) == 4
+        assert interps[0]["predicate"] == "debt_to_income_ratio"
+        assert interps[0]["object"] == 0.32
+
+    def test_finance_payload_structure(self):
+        obs = finance_observations(
+            "APP-001",
+            income={"type": "salary"},
+            employment={"type": "permanent"},
+            debts=[],
+            payments={"on_time_pct": 100},
+        )
+        payload = finance_payload("APP-001", observations=obs)
+        assert payload["@model"] == "UserML"
+        assert "layers" in payload
+        assert "observation" in payload["layers"]
+
+    def test_no_protected_attributes_in_predicates(self):
+        """Ensure finance ontology does not include protected attribute predicates."""
+        all_predicates = []
+        for layer_preds in FINANCE_PREDICATES.values():
+            all_predicates.extend(layer_preds)
+        protected = ["gender", "ethnicity", "marital_status", "nationality", "race", "religion", "disability"]
+        for attr in protected:
+            assert attr not in all_predicates, f"Protected attribute '{attr}' found in finance predicates"
 
 
 class TestValidator:

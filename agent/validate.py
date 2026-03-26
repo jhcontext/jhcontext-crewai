@@ -27,6 +27,7 @@ from jhcontext.audit import (
 from agent.ontologies.healthcare import HEALTHCARE_PREDICATES
 from agent.ontologies.education import EDUCATION_PREDICATES
 from agent.ontologies.recommendation import RECOMMENDATION_PREDICATES
+from agent.ontologies.finance import FINANCE_PREDICATES
 from agent.ontologies.validator import validate_semantic_payload
 
 import agent.output_dir as _out
@@ -285,6 +286,95 @@ def validate_recommendation() -> dict[str, Any]:
     return results
 
 
+def validate_finance() -> dict[str, Any]:
+    """Validate finance scenario outputs."""
+    results: dict[str, Any] = {"scenario": "finance", "checks": {}, "metrics": {}}
+
+    envelope = _load_json(_out.current / "finance_envelope.json")
+    credit_prov = _load_prov(_out.current / "finance_credit_prov.ttl")
+    fair_lending_prov = _load_prov(_out.current / "finance_fair_lending_prov.ttl")
+    audit = _load_json(_out.current / "finance_audit.json")
+    metrics = _load_json(_out.current / "finance_metrics.json")
+
+    # Table 1: Artifact characteristics
+    results["metrics"]["envelope_bytes"] = _file_size(_out.current / "finance_envelopes.json")
+    results["metrics"]["prov_bytes"] = _file_size(_out.current / "finance_credit_prov.ttl")
+    results["metrics"]["fair_lending_prov_bytes"] = _file_size(_out.current / "finance_fair_lending_prov.ttl")
+
+    if credit_prov:
+        entities = credit_prov.get_all_entities()
+        sequence = credit_prov.get_temporal_sequence()
+        results["metrics"]["entity_count"] = len(entities)
+        results["metrics"]["activity_count"] = len(sequence)
+        results["metrics"]["agent_count"] = _count_agents(credit_prov)
+
+    # Re-run SDK audit functions on the output files
+    if credit_prov and fair_lending_prov:
+        isolation = verify_workflow_isolation(credit_prov, fair_lending_prov)
+        results["checks"]["workflow_isolation"] = {
+            "passed": isolation.passed,
+            "evidence": isolation.evidence,
+            "message": isolation.message,
+        }
+
+        negative = verify_negative_proof(
+            prov=credit_prov,
+            decision_entity_id="art-credit-decision",
+            excluded_artifact_types=["gender", "ethnicity", "marital_status", "nationality", "age", "religion"],
+        )
+        results["checks"]["negative_proof"] = {
+            "passed": negative.passed,
+            "evidence": negative.evidence,
+            "message": negative.message,
+        }
+    else:
+        results["checks"]["prov_exists"] = {
+            "passed": False,
+            "message": "One or both PROV graph files missing",
+        }
+
+    if envelope:
+        compliance = envelope.get("compliance", {})
+        results["checks"]["risk_level"] = {
+            "passed": compliance.get("risk_level") == "high",
+            "value": compliance.get("risk_level"),
+        }
+        results["checks"]["forwarding_policy"] = {
+            "passed": compliance.get("forwarding_policy") in ("semantic_forward", "semantic-forward"),
+            "value": compliance.get("forwarding_policy"),
+        }
+
+        payload = _extract_semantic_payload(envelope)
+        if payload:
+            valid, violations = validate_semantic_payload(payload, FINANCE_PREDICATES)
+            results["checks"]["semantic_conformance"] = {
+                "passed": valid,
+                "violations": violations,
+            }
+
+    # Flow audit results
+    if audit:
+        programmatic = audit.get("programmatic_checks", {})
+        if programmatic:
+            for check_result in programmatic.get("results", []):
+                results["checks"][check_result["check_name"]] = {
+                    "passed": check_result["passed"],
+                    "evidence": check_result.get("evidence", {}),
+                    "message": check_result.get("message", ""),
+                }
+
+        composite = audit.get("composite_compliance", {})
+        results["checks"]["composite_compliance"] = {
+            "passed": composite.get("all_passed", False),
+        }
+
+    # Performance metrics
+    if metrics:
+        results["metrics"]["performance"] = metrics
+
+    return results
+
+
 # ── Report formatting ────────────────────────────────────────────────
 
 def _print_table_1(results: list[dict]) -> None:
@@ -292,9 +382,12 @@ def _print_table_1(results: list[dict]) -> None:
     print("\n" + "=" * 70)
     print("TABLE 1: Artifact Characteristics")
     print("=" * 70)
-    header = f"{'Metric':<35} {'Healthcare':>10} {'Education':>10} {'Recommend':>10}"
+    scenarios = [r["scenario"] for r in results]
+    col_width = 10
+    header_cols = " ".join(f"{s[:10]:>{col_width}}" for s in scenarios)
+    header = f"{'Metric':<35} {header_cols}"
     print(header)
-    print("-" * 70)
+    print("-" * (35 + (col_width + 1) * len(scenarios)))
 
     metric_keys = [
         ("envelope_bytes", "Envelope size (bytes)"),
@@ -315,7 +408,8 @@ def _print_table_1(results: list[dict]) -> None:
             else:
                 v = m.get(key, "—")
             vals.append(str(v) if v != "—" else "—")
-        print(f"{label:<35} {vals[0]:>10} {vals[1]:>10} {vals[2]:>10}")
+        val_cols = " ".join(f"{v:>{col_width}}" for v in vals)
+        print(f"{label:<35} {val_cols}")
 
 
 def _print_table_2(results: list[dict]) -> None:
@@ -332,11 +426,15 @@ def _print_table_2(results: list[dict]) -> None:
         "semantic_conformance",
         "risk_level",
         "forwarding_policy",
+        "composite_compliance",
     ]
 
-    header = f"{'Check':<30} {'Healthcare':>12} {'Education':>12} {'Recommend':>12}"
+    scenarios = [r["scenario"] for r in results]
+    col_width = 12
+    header_cols = " ".join(f"{s[:12]:>{col_width}}" for s in scenarios)
+    header = f"{'Check':<30} {header_cols}"
     print(header)
-    print("-" * 70)
+    print("-" * (30 + (col_width + 1) * len(scenarios)))
 
     for check in check_names:
         vals = []
@@ -348,7 +446,8 @@ def _print_table_2(results: list[dict]) -> None:
                 vals.append("PASS")
             else:
                 vals.append("FAIL")
-        print(f"{check:<30} {vals[0]:>12} {vals[1]:>12} {vals[2]:>12}")
+        val_cols = " ".join(f"{v:>{col_width}}" for v in vals)
+        print(f"{check:<30} {val_cols}")
 
 
 def _all_passed(results: list[dict]) -> bool:
@@ -400,6 +499,10 @@ def run_validation() -> int:
     recommendation = validate_recommendation()
     results.append(recommendation)
 
+    print("Validating finance scenario...")
+    finance = validate_finance()
+    results.append(finance)
+
     # Print tables
     _print_table_1(results)
     _print_table_2(results)
@@ -440,9 +543,11 @@ def _generate_summary(results: list[dict], all_ok: bool) -> str:
         "",
         "## Artifact Characteristics",
         "",
-        "| Metric | Healthcare | Education | Recommendation |",
-        "|--------|-----------|-----------|----------------|",
     ]
+
+    scenario_names = [r["scenario"].capitalize() for r in results]
+    lines.append("| Metric | " + " | ".join(scenario_names) + " |")
+    lines.append("|--------" + "|---" * len(scenario_names) + "|")
 
     metric_keys = [
         ("envelope_bytes", "Envelope size (bytes)"),
@@ -461,24 +566,25 @@ def _generate_summary(results: list[dict], all_ok: bool) -> str:
             else:
                 v = m.get(key, "—")
             vals.append(str(v) if v != "—" else "—")
-        lines.append(f"| {label} | {vals[0]} | {vals[1]} | {vals[2]} |")
+        lines.append("| " + label + " | " + " | ".join(vals) + " |")
 
     lines += [
         "",
         "## Audit Checks",
         "",
-        "| Check | Healthcare | Education | Recommendation | What it verifies |",
-        "|-------|-----------|-----------|----------------|-----------------|",
     ]
+    lines.append("| Check | " + " | ".join(scenario_names) + " | What it verifies |")
+    lines.append("|-------" + "|---" * len(scenario_names) + "|-----------------|")
 
     check_info = {
-        "temporal_oversight": "Physician reviewed source docs AFTER AI recommendation (Art. 14)",
+        "temporal_oversight": "Human reviewed source docs AFTER AI recommendation (Art. 14)",
         "integrity": "Envelope hash + signature match (tamper-evidence)",
-        "workflow_isolation": "Zero shared artifacts between grading and equity workflows (Art. 13)",
-        "negative_proof": "Identity data absent from grading PROV chain (Art. 13)",
+        "workflow_isolation": "Zero shared artifacts between isolated workflows (Art. 13)",
+        "negative_proof": "Protected data absent from decision PROV chain (Art. 13)",
         "semantic_conformance": "Semantic payload uses valid UserML predicates from domain ontology",
         "risk_level": "Envelope risk_level matches expected (high/low)",
         "forwarding_policy": "Envelope forwarding_policy matches expected (semantic/raw)",
+        "composite_compliance": "All 4 compliance patterns verified (finance only)",
     }
 
     for check, description in check_info.items():
@@ -491,7 +597,7 @@ def _generate_summary(results: list[dict], all_ok: bool) -> str:
                 vals.append("PASS")
             else:
                 vals.append("**FAIL**")
-        lines.append(f"| {check} | {vals[0]} | {vals[1]} | {vals[2]} | {description} |")
+        lines.append("| " + check + " | " + " | ".join(vals) + " | " + description + " |")
 
     lines += [
         "",
@@ -518,6 +624,15 @@ def _generate_summary(results: list[dict], all_ok: bool) -> str:
         "**Recommendation (LOW-risk):**",
         "- `risk_level=low` + `forwarding_policy=raw_forward`: Confirms LOW-risk",
         "  scenarios correctly use Raw-Forward (no Semantic-Forward constraint needed).",
+        "",
+        "**Finance (Annex III 5b — Composite Compliance):**",
+        "- `temporal_oversight`: Credit officer reviewed income, employment, bureau report,",
+        "  and AI recommendation AFTER AI generated its credit decision.",
+        "- `negative_proof`: Protected attributes (gender, ethnicity, marital status,",
+        "  nationality, age, religion) absent from credit decision PROV chain.",
+        "- `workflow_isolation`: Fair lending workflow shares zero artifacts with credit pipeline.",
+        "- `composite_compliance`: All 4 patterns (negative proof, temporal oversight,",
+        "  workflow isolation, integrity) verified — first scenario to combine all patterns.",
         "",
         "### Semantic conformance",
         "",

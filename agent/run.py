@@ -202,6 +202,40 @@ def run_recommendation():
     return result
 
 
+def run_finance():
+    """Run the financial credit assessment scenario (Annex III 5b, Articles 13/14)."""
+    import agent.output_dir as _out
+    from agent.flows.finance_flow import (
+        FinanceAuditFlow,
+        FinanceCreditFlow,
+        FinanceFairLendingFlow,
+    )
+
+    print("=" * 60)
+    print("SCENARIO: Financial Credit Assessment (EU AI Act Annex III 5b)")
+    print("  Pattern: Composite (Negative Proof + Temporal Oversight")
+    print("           + Workflow Isolation + PII Detachment)")
+    print("  Risk: HIGH")
+    print("=" * 60)
+
+    print("\n--- Credit Assessment Pipeline ---")
+    credit_flow = FinanceCreditFlow()
+    credit_flow.kickoff()
+
+    print("\n--- Fair Lending Reporting (isolated) ---")
+    fair_lending_flow = FinanceFairLendingFlow()
+    fair_lending_flow.kickoff()
+
+    print("\n--- Audit: Cross-Workflow Verification ---")
+    audit_flow = FinanceAuditFlow()
+    result = audit_flow.kickoff()
+
+    print("\n" + "=" * 60)
+    print("Finance scenario complete.")
+    print(f"Outputs in: {_out.current}/finance_*")
+    return result
+
+
 def _run_scenarios(args):
     """Dispatch scenario execution based on parsed args."""
     from agent.output_dir import next_run_dir, set_current
@@ -218,6 +252,9 @@ def _run_scenarios(args):
 
     if args.scenario in ("recommendation", "all"):
         run_recommendation()
+
+    if args.scenario in ("finance", "all"):
+        run_finance()
 
     # Print summary
     print("\n" + "=" * 60)
@@ -236,7 +273,7 @@ def main():
     parser = argparse.ArgumentParser(description="Run jhcontext-crewai agent scenarios")
     parser.add_argument(
         "--scenario",
-        choices=["healthcare", "education", "recommendation", "all"],
+        choices=["healthcare", "education", "recommendation", "finance", "all"],
         default="all",
         help="Which scenario to run (default: all)",
     )

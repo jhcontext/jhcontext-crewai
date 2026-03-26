@@ -1,0 +1,35 @@
+audit_task:
+  description: >
+    Reconstruct the full credit assessment decision chain.
+
+    Programmatic SDK checks have already been performed:
+    - Negative proof (protected attributes): {negative_proof_passed}
+      Evidence: {negative_proof_evidence}
+    - Temporal oversight (officer review): {temporal_oversight_passed}
+      Evidence: {temporal_oversight_evidence}
+    - Workflow isolation (fair lending): {isolation_passed}
+      Evidence: {isolation_evidence}
+    - Integrity (cryptographic): {integrity_passed}
+
+    Based on these programmatic results, produce a comprehensive
+    narrative audit report covering:
+
+    1. EU AI Act Annex III 5(b) — HIGH-risk classification confirmed
+    2. Article 13 — Transparency: decision includes explainable factors;
+       protected attributes provably absent from decision chain
+    3. Article 14 — Human Oversight: credit officer reviewed source
+       documents with meaningful review duration
+    4. GDPR Article 22 — Right to explanation: applicant can understand
+       which factors influenced the decision
+    5. GDPR Articles 17, 25 — PII protection: financial identifiers
+       tokenized in the pipeline
+    6. Workflow isolation: fair lending analysis completely separated
+       from credit decisioning
+
+    Produce a structured audit report with PASS/FAIL for each check
+    and overall compliance assessment.
+  expected_output: >
+    Structured audit report with: regulatory mapping (EU AI Act articles,
+    GDPR articles), individual check results (PASS/FAIL with evidence),
+    composite compliance assessment, and overall compliance status.
+  agent: audit_agent

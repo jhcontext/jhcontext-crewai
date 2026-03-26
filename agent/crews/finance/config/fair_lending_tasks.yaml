@@ -1,0 +1,27 @@
+fair_lending_task:
+  description: >
+    Analyze aggregate demographic statistics for fair lending compliance.
+
+    Input data (aggregate only — no individual applications):
+    {aggregate_demographics}
+
+    Produce a fair lending compliance report with:
+    1. Summary of demographic distribution in the applicant pool
+    2. Assessment of potential disparate impact risks
+    3. Recommendations for monitoring approval rate equity
+    4. Compliance status with EU anti-discrimination directives
+
+    CRITICAL: This analysis uses ONLY aggregate statistics. You have
+    NO access to individual loan applications, credit scores, or
+    decision outcomes. Your workflow is completely isolated from the
+    credit assessment pipeline.
+
+    Output ONLY valid JSON with these fields:
+    - demographic_summary: overview of applicant pool composition
+    - disparate_impact_assessment: risk evaluation
+    - monitoring_recommendations: list of recommendations
+    - compliance_status: overall assessment
+  expected_output: >
+    A JSON object with: demographic_summary, disparate_impact_assessment,
+    monitoring_recommendations (list), and compliance_status.
+  agent: fair_lending_agent
