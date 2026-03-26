@@ -205,6 +205,15 @@ UserML semantic payloads.
 | [Recommendation](docs/crews/recommendation.md) | LOW-risk | 3 agents, 1 crew, Raw-Forward, full provenance |
 | [Finance](docs/crews/finance.md) | Annex III 5(b) | 7 agents, 4 crews, composite compliance (all 4 patterns) |
 
+### Scenario Diagrams
+
+Reference figures from the PAC-AI paper (IADIS AIS 2026):
+
+| Figure | Scenario | Description |
+|--------|----------|-------------|
+| ![Healthcare](docs/imgs/healthcare-oversight.jpeg) | Healthcare (Art. 14) | Temporal provenance proving meaningful human oversight — physician accessed source documents independently before reviewing AI recommendation |
+| ![Education](docs/imgs/education.jpg) | Education (Art. 13) | Negative provenance proof — two isolated subgraphs show grading used only text/rubric (no identity data) |
+
 ## License
 
 Apache 2.0
