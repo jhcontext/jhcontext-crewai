@@ -1,0 +1,30 @@
+audio_ingestion_task:
+  description: >
+    Receive oral submission from student {student_id} on topic
+    "{presentation_topic}" ({duration_ms} ms audio). Separate:
+    (a) audio content artifact (content-addressed by SHA-256 of the
+    waveform bytes), (b) identity data (name, student ID, demographic
+    and accommodation attributes). Produce a transcript and a
+    word-level timing map so downstream agents can bind feedback
+    sentences to (start_ms, end_ms) windows on the audio.
+
+    Output oral-submission metrics in UserML observation layer:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [
+        {{"subject": "oral-{student_id}", "predicate": "duration_ms",     "object": {duration_ms}}},
+        {{"subject": "oral-{student_id}", "predicate": "word_count",      "object": "<count from transcript>"}},
+        {{"subject": "oral-{student_id}", "predicate": "structural_element", "object": "opening"}},
+        {{"subject": "oral-{student_id}", "predicate": "modality",        "object": "audio"}}
+      ]
+    }}}}
+
+    The transcript and timing map output MUST contain ZERO identity
+    references (no name, no student ID in prose).
+  expected_output: >
+    Two clearly separated outputs: (1) anonymised transcript text plus
+    word-level timings [{{"word": "...", "start_ms": int, "end_ms": int}},
+    ...] together with UserML observation-layer metadata (duration_ms,
+    word_count, structural_element, modality="audio"); (2) identity-data
+    package marked access-controlled. Both with content hashes.
+  agent: audio_ingestion_agent

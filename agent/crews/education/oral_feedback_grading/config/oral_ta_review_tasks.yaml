@@ -1,0 +1,47 @@
+oral_ta_review_task:
+  description: >
+    Review the AI output for a summative oral assessment. Inputs:
+    - AI aggregate score and per-criterion scores (from
+      oral_criterion_scoring)
+    - Per-sentence AI feedback (from oral_feedback)
+    - Student audio submission (content-addressed)
+    - Transcript + word-timings (semantic_extraction of the audio)
+    - Rubric (oral_rubric_v1.0)
+
+    For each rubric criterion, confirm whether the AI's score and its
+    cited (start_ms, end_ms) window align with your own listening of
+    the submission at that window. For each feedback sentence, confirm
+    whether the cited audio window actually contains the phenomenon
+    the sentence claims (e.g. a pronunciation issue, a pacing pause,
+    a grammar choice).
+
+    Decide: confirm AI output, modify specific sentences/scores, or
+    override entirely. If overriding, state the justification.
+
+    Output a JSON object:
+
+    {{
+      "decision": "confirm | modify | override",
+      "justification": "...",
+      "per_criterion_review": [
+        {{"criterion_id": "oral_rubric_v1.0#C1-pronunciation", "ai_score": 0.80, "reviewer_agrees": true, "listened_window": {{"start_ms": 2450, "end_ms": 3400}}, "note": "..."}},
+        ...
+      ],
+      "feedback_modifications": [
+        {{"sentence_id": "oral-fb-03", "action": "keep|edit|remove", "rationale": "..."}},
+        ...
+      ],
+      "alternatives_considered": [
+        {{"option": "raise C2 score to 0.88", "why_rejected": "..."}},
+        ...
+      ]
+    }}
+  expected_output: >
+    A structured JSON review with a decision (confirm/modify/override),
+    per-criterion agreement flags with the audio window each was
+    verified against, feedback-sentence actions, and alternatives
+    considered. The flow records this output as a PROV activity and
+    cross-references it with the fine-grained document-access events
+    (including audio-open events) that the flow code emits around the
+    TA activity window.
+  agent: oral_ta_review_agent

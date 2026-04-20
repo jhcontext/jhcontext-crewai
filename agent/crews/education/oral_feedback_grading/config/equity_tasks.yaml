@@ -1,0 +1,14 @@
+equity_task:
+  description: >
+    In a SEPARATE workflow from the oral grading pipeline: consume
+    aggregate identity metadata (demographic composition of a cohort of
+    oral-assessment candidates). Produce grade-distribution statistics
+    by demographic group at the cohort level. The output must have NO
+    connection to individual grading decisions in the oral grading
+    pipeline.
+  expected_output: >
+    Aggregate equity report with grade distribution by demographic
+    group, statistical-significance summary, and institutional
+    recommendations. No individual student identifiers or individual
+    grades linked to identities.
+  agent: equity_agent

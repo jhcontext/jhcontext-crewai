@@ -1,0 +1,38 @@
+oral_feedback_task:
+  description: >
+    Consume the transcript + word-timings, the oral rubric
+    (oral_rubric_v1.0), and the per-criterion scores from the scoring
+    stage. For each of the four criteria (C1-pronunciation,
+    C2-fluency, C3-content_coherence, C4-grammar_range) produce 1-2
+    feedback sentences. Every sentence MUST cite a specific audio
+    window by (start_ms, end_ms); never produce an "orphan" sentence
+    that claims to assess a criterion without pointing at a concrete
+    audio window.
+
+    Model context: model_version = "{model_id}",
+    prompt_template_hash = "{prompt_template_hash}".
+
+    Output a JSON array of feedback sentences, each with the schema:
+
+    [
+      {{
+        "sentence_id": "oral-fb-01",
+        "text": "Your opening was well-paced; 'carbon pricing' was pronounced clearly.",
+        "rubric_criterion_id": "oral_rubric_v1.0#C1-pronunciation",
+        "evidence_span": {{"start_ms": 2450, "end_ms": 3400}},
+        "artifact_modality": "audio",
+        "model_version": "{model_id}",
+        "prompt_template_hash": "{prompt_template_hash}"
+      }},
+      ...
+    ]
+
+    Produce 5-8 feedback sentences total across the four criteria.
+  expected_output: >
+    A JSON array of 5-8 feedback-sentence objects. Each object names
+    its rubric_criterion_id, evidence_span (start_ms + end_ms),
+    artifact_modality="audio", model_version, and prompt_template_hash.
+    The array is downstream-consumed by the flow to emit one PAC-AI
+    envelope per sentence; the modality-aware verifier will audit each
+    one.
+  agent: oral_feedback_agent

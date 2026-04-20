@@ -1,0 +1,28 @@
+audit_task:
+  description: >
+    Three SDK verifiers have already run over the recorded PROV
+    graphs. Their machine-readable results are passed to you as
+    inputs:
+
+    - negative_proof_passed = {negative_proof_passed}
+    - negative_proof_evidence = {negative_proof_evidence}
+    - workflow_isolation_passed = {workflow_isolation_passed}
+    - workflow_isolation_evidence = {workflow_isolation_evidence}
+    - multimodal_binding_passed = {multimodal_binding_passed}
+    - multimodal_binding_evidence = {multimodal_binding_evidence}
+    - temporal_oversight_passed = {temporal_oversight_passed}
+    - temporal_oversight_evidence = {temporal_oversight_evidence}
+
+    Write a structured narrative audit report that, for each of the
+    three scenarios (A, B-multimodal, C), names the verifier(s) that
+    covered it, states pass/fail, and cites a key piece of the
+    structural evidence (the PROV fact that grounds the verdict).
+    Keep the narrative reviewer-friendly — the machine-readable
+    evidence is already included in the flow's output JSON.
+  expected_output: >
+    Narrative audit report with three sections (Scenario A, B-
+    multimodal, C), each naming its verifier(s), its pass/fail
+    verdict, and the structural PROV fact the verifier cited. Closes
+    with an overall compliance verdict under EU AI Act Annex III §3
+    for oral-assessment deployments.
+  agent: audit_agent

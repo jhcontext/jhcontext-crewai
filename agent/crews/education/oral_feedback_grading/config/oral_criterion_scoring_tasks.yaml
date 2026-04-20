@@ -1,0 +1,38 @@
+oral_criterion_scoring_task:
+  description: >
+    Consume the transcript and word-timing map, plus the oral rubric
+    criteria (C1-pronunciation, C2-fluency, C3-content_coherence,
+    C4-grammar_range). For each criterion produce a score (0..1), a
+    confidence (0..1), and cite the supporting evidence window as
+    (start_ms, end_ms) on the audio. Produce an aggregate mark.
+    decision_influence must list ONLY content-based categories — never
+    identity attributes.
+
+    Output your scoring result in UserML layers:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [
+        {{"subject": "ORAL_ID", "predicate": "C1-pronunciation",     "object": 0.80, "confidence": 0.88}},
+        {{"subject": "ORAL_ID", "predicate": "C2-fluency",           "object": 0.85, "confidence": 0.90}},
+        {{"subject": "ORAL_ID", "predicate": "C3-content_coherence", "object": 0.82, "confidence": 0.86}},
+        {{"subject": "ORAL_ID", "predicate": "C4-grammar_range",     "object": 0.78, "confidence": 0.84}}
+      ],
+      "situation": [
+        {{"subject": "ORAL_ID", "predicate": "isInSituation", "object": "oral_scoring_complete", "confidence": 0.87}}
+      ],
+      "application": [
+        {{"predicate": "overall_grade",    "object": {{"letter": "B+", "numeric": 85}}}},
+        {{"predicate": "grade_confidence", "object": 0.87}},
+        {{"predicate": "rubric_version",   "object": "oral_rubric_v1.0"}}
+      ]
+    }}}}
+  expected_output: >
+    Scoring report in UserML format with: interpretation layer
+    per-criterion scores (C1..C4), situation layer marking
+    oral_scoring_complete, application layer with overall_grade,
+    grade_confidence, and rubric_version. For each interpretation entry
+    also include a non-UserML side-annotation
+    evidence_window_ref = {{start_ms, end_ms}} so the feedback agent can
+    cite the same audio window.
+  agent: oral_criterion_scoring_agent
