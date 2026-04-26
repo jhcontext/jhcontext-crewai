@@ -4,7 +4,12 @@
 > grading** variant (`agent/flows/education/rubric_feedback_grading.py`,
 > `agent/crews/education/rubric_feedback_grading/`). For the lighter
 > fairness-only variant (2-agent pipeline + equity isolation) see
-> [`education.md`](education.md).
+> [`education.md`](education.md). For the supplementary multimodal
+> variant that extends the same A/B/C pattern to audio submissions
+> (per-sentence binding to `(start_ms, end_ms)` audio windows audited
+> via `verify_multimodal_binding`), see
+> `agent/flows/education/oral_feedback_grading.py` —
+> CLI entry: `python -m agent.run --scenario education-oral`.
 
 Compliance scenario set: a shared three-agent AI evaluation pipeline
 (ingestion → criterion-scoring → feedback) audited from three angles that

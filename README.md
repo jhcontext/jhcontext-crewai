@@ -47,6 +47,7 @@ Each scenario demonstrates a different EU AI Act compliance pattern:
 | [Healthcare](docs/crews/healthcare.md) | Art. 14 — Human Oversight | HIGH | 5 (sensor → situation → decision → oversight → audit) | Temporal proof that physician reviewed docs AFTER AI recommendation |
 | [Education — Fair Grading](docs/crews/education.md) | Art. 13 — Non-Discrimination | HIGH | 4 (ingestion → grading ╳ equity → audit) | Workflow isolation + negative proof (identity absent from grading) |
 | [Education — Rubric-Grounded Grading](docs/crews/education_rubric_feedback_grading.md) | Annex III §3 — Three-scenario audit | HIGH | 6 (ingestion → scoring → feedback → equity → TA review → audit) | (A) negative proof + isolation, (B) rubric-criterion binding, (C) temporal oversight |
+| Education — Oral Feedback (supplementary) | Annex III §3 (multimodal) | HIGH | 6 (audio-ingestion → scoring → feedback → equity → TA review → audit) | Same A/B/C pattern over audio; per-sentence binding to `(start_ms, end_ms)` audited via `verify_multimodal_binding` |
 | [Recommendation](docs/crews/recommendation.md) | LOW-risk | LOW | 3 (profile → search → personalize) | Full provenance with Raw-Forward policy |
 | [Finance](docs/crews/finance.md) | Annex III 5(b) — Composite | HIGH | 7 (data → risk → decision → oversight ╳ fair lending → audit) | All 4 patterns: negative proof + temporal oversight + workflow isolation + PII detachment |
 
@@ -172,6 +173,7 @@ export JHCONTEXT_API_URL=https://{api-id}.execute-api.us-east-1.amazonaws.com/ap
 python -m agent.run --scenario healthcare
 python -m agent.run --scenario education-fair
 python -m agent.run --scenario education-rubric
+python -m agent.run --scenario education-oral       # supplementary multimodal variant
 python -m agent.run --scenario recommendation
 python -m agent.run --scenario finance
 python -m agent.run --scenario all

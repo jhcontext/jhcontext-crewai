@@ -5,11 +5,21 @@ modules do not share pipeline code: each mirrors its own architectural
 description verbatim so that a reviewer can map flows back to the
 scenario descriptions without cross-referencing.
 
-| Module | Focus | Pipeline shape | Scope |
+## Scenario ↔ module map
+
+| Scenario | Focus | Module | Class entry points |
 |---|---|---|---|
-| `fair_grading.py` | **Fair grading** — Article 13 EU AI Act non-discrimination | 2-agent chain: `ingestion → grading`, plus isolated equity workflow and cross-workflow audit | Identity-blind grading with workflow isolation |
-| `rubric_feedback_grading.py` | **Rubric-grounded grading (text)** — auditable AI assessment on essays | 3-agent chain: `ingestion → criterion-scoring → feedback` (per-sentence envelope emission), plus isolated equity workflow, TA-review flow with temporal oversight, and a combined audit that runs three verifiers | Three scenarios — (A) identity-blind grading, (B) rubric-grounded LLM feedback, (C) human–AI collaborative grading |
-| `oral_feedback_grading.py` | **Rubric-grounded grading (multimodal)** — auditable AI assessment on audio submissions | 3-agent chain: `audio_ingestion (STT+alignment) → criterion-scoring → feedback` (per-sentence envelope bound to `(start_ms, end_ms)` on the audio), plus isolated equity workflow, TA-review flow that includes an audio-open event, and a combined audit that runs `verify_negative_proof` + `verify_workflow_isolation` + `verify_multimodal_binding` + `verify_temporal_oversight` | Three multimodal scenarios — (A) identity-blind oral grading, (B) rubric-grounded oral feedback with audio-window binding, (C) human–AI collaborative oral grading |
+| **A — Identity-Blind Essay Grading** | Article 13 non-discrimination via workflow isolation | `fair_grading.py` | `EducationGradingFlow`, `EducationEquityFlow`, `EducationAuditFlow` |
+| **B — Rubric-Grounded LLM Feedback** | Per-sentence Interpretation+Application bindings to rubric criteria with evidence spans | `rubric_feedback_grading.py` | `RubricGradingFlow` (ingestion → criterion-scoring → feedback) |
+| **C — Human–AI Collaborative Grading** | Temporal oversight: TA review activity recorded after AI output, before grade commit | `rubric_feedback_grading.py` | `RubricTAReviewFlow` |
+| Combined audit (A+B+C) | Runs `verify_negative_proof` + `verify_workflow_isolation` + `verify_rubric_grounding` + `verify_temporal_oversight` | `rubric_feedback_grading.py` | `RubricAuditFlow` |
+| Supplementary — multimodal variant | Same A/B/C pattern with audio submissions (per-sentence binding via `(start_ms, end_ms)` audio windows, audited with `verify_multimodal_binding`) | `oral_feedback_grading.py` | `OralGradingFlow`, `OralEquityFlow`, `OralTAReviewFlow`, `OralAuditFlow` |
+
+| Module | Pipeline shape |
+|---|---|
+| `fair_grading.py` | 2-agent chain: `ingestion → grading`, plus isolated equity workflow and cross-workflow audit |
+| `rubric_feedback_grading.py` | 3-agent chain: `ingestion → criterion-scoring → feedback` (per-sentence envelope emission) + equity + TA-review + combined audit |
+| `oral_feedback_grading.py` | 3-agent chain: `audio_ingestion (STT+alignment) → criterion-scoring → feedback` + equity + TA-review (with audio-open event) + multimodal audit |
 
 ## Crews
 
@@ -33,9 +43,12 @@ self-contained and reviewable in isolation.
 ## Entry points
 
 ```bash
-# Fair-grading scenario (2-agent pipeline + equity + audit)
+# Scenario A — fair grading (2-agent pipeline + equity + audit)
 python -m agent.run --local --scenario education-fair
 
-# Rubric-grounded scenario (3-agent pipeline + equity + TA review + three-verifier audit)
+# Scenarios A + B + C — rubric-grounded grading (3-agent pipeline + equity + TA review + four-verifier audit)
 python -m agent.run --local --scenario education-rubric
+
+# Supplementary — multimodal oral-feedback variant (audio modality)
+python -m agent.run --local --scenario education-oral
 ```

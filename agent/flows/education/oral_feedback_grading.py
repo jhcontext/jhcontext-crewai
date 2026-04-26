@@ -137,6 +137,10 @@ class OralGradingFlow(Flow, ContextMixin):
             producer="did:university:oral-grading-system",
             risk_level=RiskLevel.HIGH,
             human_oversight=True,
+            feature_suppression=[
+                "student_name", "student_id",
+                "accommodation_flags", "prior_grades",
+            ],
         )
 
         self._register_crew(
@@ -456,6 +460,10 @@ class OralTAReviewFlow(Flow, ContextMixin):
             producer="did:university:ta-review-system-oral",
             risk_level=RiskLevel.HIGH,
             human_oversight=True,
+            feature_suppression=[
+                "student_name", "student_id",
+                "accommodation_flags", "prior_grades",
+            ],
         )
 
         self._register_crew(

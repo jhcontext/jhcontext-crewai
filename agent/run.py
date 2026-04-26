@@ -4,6 +4,7 @@ Usage:
     python -m agent.run --scenario healthcare
     python -m agent.run --scenario education-fair        # fair grading (Art. 13)
     python -m agent.run --scenario education-rubric      # rubric-grounded grading
+    python -m agent.run --scenario education-oral        # multimodal oral-feedback variant (supplementary)
     python -m agent.run --scenario recommendation
     python -m agent.run --scenario all
     python -m agent.run --local --scenario healthcare
@@ -250,6 +251,47 @@ def run_education_rubric():
     return result
 
 
+def run_education_oral():
+    """Run the multimodal oral-feedback variant (supplementary).
+
+    Extends the rubric-grounded pattern (Scenarios A/B/C) to audio
+    submissions: per-sentence feedback is bound to a (start_ms, end_ms)
+    evidence window in the audio, audited via ``verify_multimodal_binding``.
+    Demonstrates the same protocol primitives over a non-text modality.
+    """
+    import agent.output_dir as _out
+    from agent.flows.education.oral_feedback_grading import (
+        OralAuditFlow,
+        OralEquityFlow,
+        OralGradingFlow,
+        OralTAReviewFlow,
+    )
+
+    print("=" * 60)
+    print("SCENARIO: Multimodal Oral Feedback (supplementary)")
+    print("  Pipeline: audio-ingestion → scoring → feedback (+TA review)")
+    print("  Audit:    multimodal_binding + temporal_oversight + workflow_isolation")
+    print("  Risk:     HIGH")
+    print("=" * 60)
+
+    print("\n--- Audio Grading Pipeline ---")
+    OralGradingFlow().kickoff()
+
+    print("\n--- Equity Reporting Workflow (isolated) ---")
+    OralEquityFlow().kickoff()
+
+    print("\n--- TA Review (temporal oversight) ---")
+    OralTAReviewFlow().kickoff()
+
+    print("\n--- Combined Audit ---")
+    result = OralAuditFlow().kickoff()
+
+    print("\n" + "=" * 60)
+    print("Oral feedback scenario complete.")
+    print(f"Outputs in: {_out.current}/education_oral_*")
+    return result
+
+
 def run_finance():
     """Run the financial credit assessment scenario (Annex III 5b, Articles 13/14)."""
     import agent.output_dir as _out
@@ -300,6 +342,9 @@ def _run_scenarios(args):
 
     if args.scenario in ("education-rubric", "all"):
         run_education_rubric()
+
+    if args.scenario in ("education-oral", "all"):
+        run_education_oral()
 
     if args.scenario in ("recommendation", "all"):
         run_recommendation()

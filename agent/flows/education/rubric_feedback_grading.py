@@ -135,6 +135,10 @@ class RubricGradingFlow(Flow, ContextMixin):
             producer="did:university:grading-system-rubric",
             risk_level=RiskLevel.HIGH,
             human_oversight=True,
+            feature_suppression=[
+                "student_name", "student_id",
+                "accommodation_flags", "prior_grades",
+            ],
         )
 
         self._register_crew(
@@ -440,6 +444,10 @@ class RubricTAReviewFlow(Flow, ContextMixin):
             producer="did:university:ta-review-system-rubric",
             risk_level=RiskLevel.HIGH,
             human_oversight=True,
+            feature_suppression=[
+                "student_name", "student_id",
+                "accommodation_flags", "prior_grades",
+            ],
         )
 
         self._register_crew(

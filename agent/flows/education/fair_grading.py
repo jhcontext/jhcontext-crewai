@@ -49,6 +49,10 @@ class EducationGradingFlow(Flow, ContextMixin):
             producer="did:university:grading-system",
             risk_level=RiskLevel.HIGH,
             human_oversight=False,
+            feature_suppression=[
+                "student_name", "student_id",
+                "accommodation_flags", "prior_grades",
+            ],
         )
 
         self._register_crew(
