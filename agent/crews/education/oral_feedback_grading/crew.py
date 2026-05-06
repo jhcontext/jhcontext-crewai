@@ -19,6 +19,8 @@ from __future__ import annotations
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from jhcontext.flat_envelope import FlatEnvelope
+
 from agent.libs.llms import (
     llm_classifier_claude,
     llm_content_claude,
@@ -44,7 +46,10 @@ class OralAudioIngestionCrew:
 
     @task
     def audio_ingestion_task(self) -> Task:
-        return Task(config=self.tasks_config["audio_ingestion_task"])
+        return Task(
+            config=self.tasks_config["audio_ingestion_task"],
+            output_pydantic=FlatEnvelope,
+        )
 
     @crew
     def crew(self) -> Crew:
@@ -68,7 +73,10 @@ class OralCriterionScoringCrew:
 
     @task
     def oral_criterion_scoring_task(self) -> Task:
-        return Task(config=self.tasks_config["oral_criterion_scoring_task"])
+        return Task(
+            config=self.tasks_config["oral_criterion_scoring_task"],
+            output_pydantic=FlatEnvelope,
+        )
 
     @crew
     def crew(self) -> Crew:
@@ -92,7 +100,10 @@ class OralFeedbackCrew:
 
     @task
     def oral_feedback_task(self) -> Task:
-        return Task(config=self.tasks_config["oral_feedback_task"])
+        return Task(
+            config=self.tasks_config["oral_feedback_task"],
+            output_pydantic=FlatEnvelope,
+        )
 
     @crew
     def crew(self) -> Crew:

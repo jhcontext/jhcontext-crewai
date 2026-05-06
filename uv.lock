@@ -344,6 +344,7 @@ dependencies = [
     { name = "jmespath" },
     { name = "s3transfer" },
 ]
+sdist = { url = "https://files.pythonhosted.org/packages/74/ec/636ab2aa7ad9e6bf6e297240ac2d44dba63cc6611e2d5038db318436d449/boto3-1.42.74.tar.gz", hash = "sha256:dbacd808cf2a3dadbf35f3dbd8de97b94dc9f78b1ebd439f38f552e0f9753577", size = 112739, upload-time = "2026-03-23T19:34:09.815Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ad/16/a264b4da2af99f4a12609b93fea941cce5ec41da14b33ed3fef77a910f0c/boto3-1.42.74-py3-none-any.whl", hash = "sha256:4bf89c044d618fe4435af854ab820f09dd43569c0df15d7beb0398f50b9aa970", size = 140557, upload-time = "2026-03-23T19:34:07.084Z" },
 ]
@@ -994,7 +995,7 @@ name = "exceptiongroup"
 version = "1.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/79/66800aadf48771f6b62f7eb014e352e5d06856655206165d775e675a02c9/exceptiongroup-1.3.1.tar.gz", hash = "sha256:8b412432c6055b0b7d14c310000ae93352ed6754f70fa8f7c34141f91c4e3219", size = 30371, upload-time = "2025-11-21T23:01:54.787Z" }
 wheels = [
@@ -1449,16 +1450,16 @@ wheels = [
 
 [[package]]
 name = "jhcontext"
-version = "0.3.3"
+version = "0.5.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
     { name = "rdflib" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ee/a9/b2fc341dd0e02b934c6d47d3ae8102745a8420141c7783b36bd3cf8da644/jhcontext-0.3.3.tar.gz", hash = "sha256:824748ce9ef280aae4ade4a97bb51dc39850bb32f9f9d5f1bf9066088b136dfd", size = 345814, upload-time = "2026-03-24T13:25:21.101Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/cb/92/9e83694b167809f2916eb3ad98146772395fc9f38ad3c762f1e950856662/jhcontext-0.5.1.tar.gz", hash = "sha256:b82a27871a48a29b0309dc9220d512e4fec5a5a21533d30b4355e270b06b0ab6", size = 355172, upload-time = "2026-04-21T20:14:32.621Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/82/f7/980260872d133363a9013067a8ee9eb7ff361568fb193760328c546ae520/jhcontext-0.3.3-py3-none-any.whl", hash = "sha256:6276a031615febc978eccc48531f12a83face32c2e55aef94fe15726fb764a1e", size = 42265, upload-time = "2026-03-24T13:25:19.698Z" },
+    { url = "https://files.pythonhosted.org/packages/33/4d/300818b147f4561a6935962407000e7a62ee0660921fc978a15c01641228/jhcontext-0.5.1-py3-none-any.whl", hash = "sha256:d8c39cdd39c210b611ae8d40cea7924cf494c5e4aa61c6fa852c7024da2971b0", size = 47478, upload-time = "2026-04-21T20:14:31.287Z" },
 ]
 
 [[package]]
@@ -1498,7 +1499,7 @@ requires-dist = [
     { name = "crewai", marker = "extra == 'agent'", specifier = ">=1.9" },
     { name = "crewai-tools", marker = "extra == 'agent'", specifier = ">=1.9" },
     { name = "httpx", specifier = ">=0.27" },
-    { name = "jhcontext", specifier = ">=0.3.0" },
+    { name = "jhcontext", specifier = ">=0.5.0,<0.6" },
     { name = "jhcontext-crewai", extras = ["api", "agent"], marker = "extra == 'all'" },
     { name = "moto", extras = ["dynamodb", "s3"], marker = "extra == 'dev'", specifier = ">=5.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },

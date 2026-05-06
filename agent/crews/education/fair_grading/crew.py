@@ -5,6 +5,8 @@ from __future__ import annotations
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from jhcontext.flat_envelope import FlatEnvelope
+
 from agent.libs.llms import (
     llm_classifier_claude,
     llm_data_claude,
@@ -29,7 +31,10 @@ class EducationIngestionCrew:
 
     @task
     def ingestion_task(self) -> Task:
-        return Task(config=self.tasks_config["ingestion_task"])
+        return Task(
+            config=self.tasks_config["ingestion_task"],
+            output_pydantic=FlatEnvelope,
+        )
 
     @crew
     def crew(self) -> Crew:
@@ -53,7 +58,10 @@ class EducationGradingCrew:
 
     @task
     def grading_task(self) -> Task:
-        return Task(config=self.tasks_config["grading_task"])
+        return Task(
+            config=self.tasks_config["grading_task"],
+            output_pydantic=FlatEnvelope,
+        )
 
     @crew
     def crew(self) -> Crew:

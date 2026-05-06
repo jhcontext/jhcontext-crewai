@@ -17,6 +17,8 @@ from __future__ import annotations
 from crewai import Agent, Crew, Process, Task
 from crewai.project import CrewBase, agent, crew, task
 
+from jhcontext.flat_envelope import FlatEnvelope
+
 from agent.libs.llms import (
     llm_classifier_claude,
     llm_content_claude,
@@ -42,7 +44,10 @@ class RubricIngestionCrew:
 
     @task
     def ingestion_task(self) -> Task:
-        return Task(config=self.tasks_config["ingestion_task"])
+        return Task(
+            config=self.tasks_config["ingestion_task"],
+            output_pydantic=FlatEnvelope,
+        )
 
     @crew
     def crew(self) -> Crew:
@@ -66,7 +71,10 @@ class RubricCriterionScoringCrew:
 
     @task
     def criterion_scoring_task(self) -> Task:
-        return Task(config=self.tasks_config["criterion_scoring_task"])
+        return Task(
+            config=self.tasks_config["criterion_scoring_task"],
+            output_pydantic=FlatEnvelope,
+        )
 
     @crew
     def crew(self) -> Crew:
@@ -90,7 +98,10 @@ class RubricFeedbackCrew:
 
     @task
     def feedback_task(self) -> Task:
-        return Task(config=self.tasks_config["feedback_task"])
+        return Task(
+            config=self.tasks_config["feedback_task"],
+            output_pydantic=FlatEnvelope,
+        )
 
     @crew
     def crew(self) -> Crew:
