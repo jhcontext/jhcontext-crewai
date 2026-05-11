@@ -78,8 +78,9 @@ class ContextMixin:
         client = JHContextClient(base_url=API_URL)
         prov = PROVGraph(context_id=context_id)
 
-        # SDK classes for protocol logic
-        enforcer = ForwardingEnforcer()
+        # SDK classes for protocol logic — pipeline policy is fixed at the
+        # envelope's forwarding_policy (derived from risk_level by the builder).
+        enforcer = ForwardingEnforcer(policy=env.compliance.forwarding_policy)
         persister = StepPersister(
             client=client,
             builder=builder,

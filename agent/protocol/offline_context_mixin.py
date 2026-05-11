@@ -91,7 +91,9 @@ class OfflineContextMixin:
         self.state["_prov"] = prov
         self.state["_context_id"] = context_id
         self.state["_pii_vault"] = pii_vault
-        self.state["_enforcer"] = ForwardingEnforcer()
+        self.state["_enforcer"] = ForwardingEnforcer(
+            policy=env.compliance.forwarding_policy
+        )
         self.state["_queue"] = queue
         # StepPersister is reused for metric bookkeeping; we pass None client.
         self.state["_persister"] = StepPersister(

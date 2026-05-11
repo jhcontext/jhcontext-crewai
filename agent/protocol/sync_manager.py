@@ -63,7 +63,23 @@ class ConnectivityTimeline:
         return state
 
     def next_online_window(self, after: datetime) -> tuple[datetime, datetime] | None:
-        """Return the next (start, end) online window starting after *after*."""
+        """Return the next (start, end) online window covering or following *after*.
+
+        If the timeline is already online at *after* (i.e., the most recent
+        event with ``at <= after`` is ``online``), return ``(after, end)``
+        where *end* is the next offline transition (or a far-future sentinel
+        for an open-ended tail). Otherwise scan forward for the next online
+        start. This matches the half-open semantics documented on
+        ``ConnectivityTimeline`` — past events define current state.
+        """
+        if self.is_online(after):
+            for ev in self.events:
+                if ev.at <= after:
+                    continue
+                if not ev.online:
+                    return (after, ev.at)
+            return (after, datetime.max.replace(tzinfo=timezone.utc))
+
         start: datetime | None = None
         for ev in self.events:
             if ev.at < after:
@@ -73,7 +89,6 @@ class ConnectivityTimeline:
             elif not ev.online and start is not None:
                 return (start, ev.at)
         if start is not None:
-            # Open-ended online tail — use a far-future sentinel.
             return (start, datetime.max.replace(tzinfo=timezone.utc))
         return None
 

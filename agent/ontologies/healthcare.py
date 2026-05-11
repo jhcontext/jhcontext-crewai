@@ -14,6 +14,8 @@ from jhcontext.semantics import (
     userml_payload,
 )
 
+from . import inject_subject
+
 # ── Valid predicates per UserML layer ────────────────────────────────
 
 HEALTHCARE_PREDICATES: dict[str, list[str]] = {
@@ -77,10 +79,10 @@ def healthcare_situations(patient_id: str, situation_type: str, start: str | Non
 def healthcare_payload(patient_id: str, observations: list, interpretations: list | None = None, situations: list | None = None, application: list | None = None) -> dict:
     """Build a complete UserML payload for the healthcare domain."""
     return userml_payload(
-        observations=observations,
-        interpretations=interpretations or [],
-        situations=situations or [],
-        application=application or [],
+        observations=inject_subject(observations, patient_id),
+        interpretations=inject_subject(interpretations, patient_id),
+        situations=inject_subject(situations, patient_id),
+        application=inject_subject(application, patient_id),
     )
 
 
@@ -105,4 +107,4 @@ def sample_healthcare(patient_id: str = "P-12345", now_iso: str = "2026-03-24T10
         {"predicate": "oversight_required", "object": True},
         {"predicate": "confidence_score", "object": 0.87},
     ]
-    return userml_payload(observations=obs, interpretations=interps, situations=sits, application=app)
+    return healthcare_payload(patient_id, obs, interps, sits, app)

@@ -1,0 +1,155 @@
+@prefix jh: <https://jhcontext.com/vocab#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+jh:act-access-bureau a prov:Activity ;
+    rdfs:label "Access credit bureau report" ;
+    prov:endedAtTime "2026-05-09T12:46:38.030919+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:43:38.030919+00:00"^^xsd:dateTime ;
+    prov:used jh:ent-bureau-report ;
+    prov:wasAssociatedWith <did:bank:credit-officer> .
+
+jh:act-access-employment a prov:Activity ;
+    rdfs:label "Access employment records" ;
+    prov:endedAtTime "2026-05-09T12:43:38.030919+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:41:38.030919+00:00"^^xsd:dateTime ;
+    prov:used jh:ent-employment-records ;
+    prov:wasAssociatedWith <did:bank:credit-officer> .
+
+jh:act-access-income a prov:Activity ;
+    rdfs:label "Access income verification" ;
+    prov:endedAtTime "2026-05-09T12:41:38.030919+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:38:38.030919+00:00"^^xsd:dateTime ;
+    prov:used jh:ent-income-docs ;
+    prov:wasAssociatedWith <did:bank:credit-officer> .
+
+jh:act-review-ai a prov:Activity ;
+    rdfs:label "Review AI credit recommendation" ;
+    prov:endedAtTime "2026-05-09T12:48:38.030919+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:46:38.030919+00:00"^^xsd:dateTime ;
+    prov:used jh:ent-ai-recommendation ;
+    prov:wasAssociatedWith <did:bank:credit-officer> .
+
+jh:art-audit a prov:Entity ;
+    rdfs:label "Output of audit" ;
+    prov:wasDerivedFrom jh:art-credit-decision,
+        jh:art-financial-data,
+        jh:art-oversight,
+        jh:art-risk-analysis ;
+    prov:wasGeneratedBy jh:act-audit ;
+    jh:artifactType "tool_result" ;
+    jh:contentHash "3398c81fae53db745506e385ca6bf2b7f3185685e6884c8ab4ffc917d1c48fa5" .
+
+<did:bank:audit-agent> a prov:Agent ;
+    rdfs:label "did:bank:audit-agent" ;
+    jh:role "audit" .
+
+<did:bank:data-collector-agent> a prov:Agent ;
+    rdfs:label "did:bank:data-collector-agent" ;
+    prov:actedOnBehalfOf <https://jhcontext.com/vocab#crew:credit-pipeline> ;
+    jh:role "financial-data" .
+
+<did:bank:decision-agent> a prov:Agent ;
+    rdfs:label "did:bank:decision-agent" ;
+    prov:actedOnBehalfOf <https://jhcontext.com/vocab#crew:credit-pipeline> ;
+    jh:role "credit-decision" .
+
+<did:bank:risk-analyzer-agent> a prov:Agent ;
+    rdfs:label "did:bank:risk-analyzer-agent" ;
+    prov:actedOnBehalfOf <https://jhcontext.com/vocab#crew:credit-pipeline> ;
+    jh:role "risk-analysis" .
+
+jh:act-audit a prov:Activity ;
+    rdfs:label "audit" ;
+    prov:endedAtTime "2026-05-09T12:40:14.983961+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:38:54.880854+00:00"^^xsd:dateTime ;
+    prov:used jh:art-credit-decision,
+        jh:art-financial-data,
+        jh:art-oversight,
+        jh:art-risk-analysis ;
+    prov:wasAssociatedWith <did:bank:audit-agent> .
+
+jh:act-credit-decision a prov:Activity ;
+    rdfs:label "credit-decision" ;
+    prov:endedAtTime "2026-05-09T12:38:37.354557+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:38:37.354557+00:00"^^xsd:dateTime ;
+    prov:used jh:art-risk-analysis ;
+    prov:wasAssociatedWith <did:bank:decision-agent> .
+
+jh:act-financial-data a prov:Activity ;
+    rdfs:label "financial-data" ;
+    prov:endedAtTime "2026-05-09T12:38:08.013545+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:38:08.013545+00:00"^^xsd:dateTime ;
+    prov:wasAssociatedWith <did:bank:data-collector-agent> .
+
+jh:act-oversight a prov:Activity ;
+    rdfs:label "physician_oversight" ;
+    prov:endedAtTime "2026-05-09T12:48:38.030919+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:38:38.030919+00:00"^^xsd:dateTime ;
+    prov:used jh:art-credit-decision,
+        jh:ent-ai-recommendation,
+        jh:ent-bureau-report,
+        jh:ent-employment-records,
+        jh:ent-income-docs ;
+    prov:wasAssociatedWith <did:bank:credit-officer> .
+
+jh:act-risk-analysis a prov:Activity ;
+    rdfs:label "risk-analysis" ;
+    prov:endedAtTime "2026-05-09T12:38:13.356593+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:38:13.356593+00:00"^^xsd:dateTime ;
+    prov:used jh:art-financial-data ;
+    prov:wasAssociatedWith <did:bank:risk-analyzer-agent> .
+
+jh:art-oversight a prov:Entity ;
+    rdfs:label "Physician oversight summary" ;
+    prov:wasDerivedFrom jh:art-credit-decision ;
+    prov:wasGeneratedBy jh:act-oversight ;
+    jh:artifactType "semantic_extraction" ;
+    jh:contentHash "c86b97687037751ca6b1ff8825a5795d5048e060263df9586c386805a23e7d56" .
+
+jh:ent-ai-recommendation a prov:Entity ;
+    rdfs:label "AI credit recommendation" ;
+    jh:artifactType "source_document" .
+
+jh:ent-bureau-report a prov:Entity ;
+    rdfs:label "Credit bureau report" ;
+    jh:artifactType "source_document" .
+
+jh:ent-employment-records a prov:Entity ;
+    rdfs:label "Employment records" ;
+    jh:artifactType "source_document" .
+
+jh:ent-income-docs a prov:Entity ;
+    rdfs:label "Income verification documents" ;
+    jh:artifactType "source_document" .
+
+<https://jhcontext.com/vocab#crew:credit-pipeline> a prov:Agent,
+        prov:SoftwareAgent ;
+    rdfs:label "Credit Assessment Pipeline Crew" ;
+    jh:agentType "crew" .
+
+jh:art-credit-decision a prov:Entity ;
+    rdfs:label "Task output: credit-decision" ;
+    prov:wasDerivedFrom jh:art-risk-analysis ;
+    prov:wasGeneratedBy jh:act-credit-decision ;
+    jh:artifactType "semantic_extraction" ;
+    jh:contentHash "a65e55f2f483d392020402802285ccd3ae04d3b0b0e7b275bcbe14f14741fc61" .
+
+jh:art-financial-data a prov:Entity ;
+    rdfs:label "Task output: financial-data" ;
+    prov:wasGeneratedBy jh:act-financial-data ;
+    jh:artifactType "token_sequence" ;
+    jh:contentHash "19a3a5cd02adff6b387b78dde14602f9b4955fbd7dad349cf66fe4e82f744530" .
+
+jh:art-risk-analysis a prov:Entity ;
+    rdfs:label "Task output: risk-analysis" ;
+    prov:wasDerivedFrom jh:art-financial-data ;
+    prov:wasGeneratedBy jh:act-risk-analysis ;
+    jh:artifactType "semantic_extraction" ;
+    jh:contentHash "d7536816147b89f5bbfc3040c2012f8d0ee23f06150c929ae9a3a8ac93958d82" .
+
+<did:bank:credit-officer> a prov:Agent ;
+    rdfs:label "did:bank:credit-officer" ;
+    jh:role "physician_oversight" .
+

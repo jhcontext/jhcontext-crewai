@@ -1,0 +1,51 @@
+{
+  "context_id": "ctx-255ae39e-cf00-4550-be26-5c43d339e6cf",
+  "total_ms": 130037.02,
+  "steps": [
+    {
+      "step": "financial-data",
+      "agent": "did:bank:data-collector-agent",
+      "artifact_id": "art-financial-data",
+      "content_size_bytes": 587,
+      "persist_ms": 0,
+      "started_at": "2026-05-09T12:38:08.013545+00:00",
+      "ended_at": "2026-05-09T12:38:08.013545+00:00"
+    },
+    {
+      "step": "risk-analysis",
+      "agent": "did:bank:risk-analyzer-agent",
+      "artifact_id": "art-risk-analysis",
+      "content_size_bytes": 1261,
+      "persist_ms": 0,
+      "started_at": "2026-05-09T12:38:13.356593+00:00",
+      "ended_at": "2026-05-09T12:38:13.356593+00:00"
+    },
+    {
+      "step": "credit-decision",
+      "agent": "did:bank:decision-agent",
+      "artifact_id": "art-credit-decision",
+      "content_size_bytes": 4280,
+      "persist_ms": 0,
+      "started_at": "2026-05-09T12:38:37.354557+00:00",
+      "ended_at": "2026-05-09T12:38:37.354557+00:00"
+    },
+    {
+      "step": "oversight",
+      "agent": "did:bank:credit-officer",
+      "artifact_id": "art-oversight",
+      "content_size_bytes": 3248,
+      "persist_ms": 0,
+      "started_at": "2026-05-09T12:38:38.030919+00:00",
+      "ended_at": "2026-05-09T12:48:38.030919+00:00"
+    },
+    {
+      "step": "audit",
+      "agent": "did:bank:audit-agent",
+      "artifact_id": "art-audit",
+      "content_size_bytes": 17572,
+      "persist_ms": 149.38,
+      "started_at": "2026-05-09T12:38:54.880854+00:00",
+      "ended_at": "2026-05-09T12:40:14.983961+00:00"
+    }
+  ]
+}

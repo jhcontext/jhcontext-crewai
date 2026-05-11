@@ -14,6 +14,8 @@ from jhcontext.semantics import (
     userml_payload,
 )
 
+from . import inject_subject
+
 # ── Valid predicates per UserML layer ────────────────────────────────
 
 FINANCE_PREDICATES: dict[str, list[str]] = {
@@ -85,10 +87,10 @@ def finance_situations(applicant_id: str, situation_type: str, start: str | None
 def finance_payload(applicant_id: str, observations: list, interpretations: list | None = None, situations: list | None = None, application: list | None = None) -> dict:
     """Build a complete UserML payload for the finance domain."""
     return userml_payload(
-        observations=observations,
-        interpretations=interpretations or [],
-        situations=situations or [],
-        application=application or [],
+        observations=inject_subject(observations, applicant_id),
+        interpretations=inject_subject(interpretations, applicant_id),
+        situations=inject_subject(situations, applicant_id),
+        application=inject_subject(application, applicant_id),
     )
 
 
@@ -124,4 +126,4 @@ def sample_finance(applicant_id: str = "APP-2026-00847", now_iso: str = "2026-03
             "One late payment in 12 months (minor deduction)",
         ]},
     ]
-    return userml_payload(observations=obs, interpretations=interps, situations=sits, application=app)
+    return finance_payload(applicant_id, obs, interps, sits, app)

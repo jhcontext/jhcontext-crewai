@@ -44,8 +44,11 @@ def test_hiring_pipeline_offline_passes_default(output_dir: Path) -> None:
         "interview", "ranking", "decision_support",
     ], metrics["steps"]
 
-    # ForwardingEnforcer flipped the boundary at the parsing handoff.
-    assert metrics["semantic_boundary_reached"] is True
+    # Two composed pipelines: raw sourcing → semantic decision stage.
+    assert metrics["pipeline_forwarding_policies"] == {
+        "sourcing_stage": "raw_forward",
+        "decision_stage": "semantic_forward",
+    }
 
     # Both audit checkpoints pass with default fixtures.
     assert metrics["procurement_passed"], "procurement audit should PASS"

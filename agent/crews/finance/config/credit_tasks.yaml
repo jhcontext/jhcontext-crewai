@@ -31,7 +31,7 @@ data_collection_task:
     Set scope="credit_assessment",
     producer="did:bank:data-collector-agent",
     compliance.risk_level="high", compliance.human_oversight_required=true,
-    compliance.forwarding_policy="raw_forward".
+    compliance.forwarding_policy="semantic_forward".
   expected_output: >
     A jhcontext Envelope JSON with semantic_payload in UserML format
     containing structured financial observations (income, employment,

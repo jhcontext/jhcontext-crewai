@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import json
 import time as _time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from crewai.flow.flow import Flow, listen, start
@@ -40,8 +40,8 @@ from jhcontext.audit import (
 
 import agent.output_dir as _out
 
-# Simulated document-access durations (seconds).
-# Production would use real credit officer interaction times.
+# Simulated document-access durations (minutes). Total 10 min = 600 s.
+# Timestamps are synthesised — we do not actually sleep for 10 minutes.
 SOURCE_DOCUMENTS = [
     ("act-access-income", "Access income verification", "ent-income-docs", "Income verification documents", 3),
     ("act-access-employment", "Access employment records", "ent-employment-records", "Employment records", 2),
@@ -124,14 +124,17 @@ class FinanceCreditFlow(Flow, ContextMixin):
         """
         print("[Finance/Credit] Step 4/5: Credit officer oversight...")
 
-        # ── Code-controlled document access with real timestamps ──
+        # ── Code-controlled document access with synthesised timestamps ──
+        # Officer review is anchored at "now" and durations from SOURCE_DOCUMENTS
+        # advance the clock virtually — we do not sleep for 10 wall-clock minutes.
         oversight_events = []
         overall_t0 = datetime.now(timezone.utc)
+        cursor = overall_t0
 
-        for event_id, label, entity_id, entity_label, duration in SOURCE_DOCUMENTS:
-            t0 = datetime.now(timezone.utc)
-            _time.sleep(duration)
-            t1 = datetime.now(timezone.utc)
+        for event_id, label, entity_id, entity_label, duration_minutes in SOURCE_DOCUMENTS:
+            t0 = cursor
+            t1 = t0 + timedelta(minutes=duration_minutes)
+            cursor = t1
             oversight_events.append({
                 "event_id": event_id,
                 "label": label,
@@ -145,7 +148,10 @@ class FinanceCreditFlow(Flow, ContextMixin):
         result = FinanceOversightCrew().crew().kickoff(
             inputs={"recommendation": decision_output}
         )
-        overall_t1 = datetime.now(timezone.utc)
+        # Use the synthesised cursor as the officer-review end timestamp so
+        # `total_review_seconds` reflects the simulated 10-minute review,
+        # not the wall-clock time the LLM took to draft a narrative.
+        overall_t1 = cursor
 
         # ── Persist fine-grained oversight events to PROV graph ──
         self._persist_oversight_events(
@@ -188,7 +194,7 @@ class FinanceCreditFlow(Flow, ContextMixin):
             prov=prov,
             ai_activity_id="act-credit-decision",
             human_activities=human_activities,
-            min_review_seconds=5.0,  # simulated (real: 300.0)
+            min_review_seconds=600.0,  # 10 minutes synthesised cursor advance
         )
 
         # Negative proof: protected attributes absent from decision chain

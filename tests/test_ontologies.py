@@ -57,16 +57,22 @@ class TestHealthcareOntology:
             imaging=["2.3cm nodule"],
         )
         assert len(obs) == 3
-        assert obs[0]["predicate"] == "demographic"
-        assert obs[1]["predicate"] == "lab_result"
-        assert obs[2]["predicate"] == "imaging_finding"
+        assert obs[0]["mainpart"]["predicate"] == "demographic"
+        assert obs[1]["mainpart"]["predicate"] == "lab_result"
+        assert obs[2]["mainpart"]["predicate"] == "imaging_finding"
 
     def test_healthcare_payload_structure(self):
-        obs = healthcare_observations("P-001", {}, [], [])
+        obs = healthcare_observations(
+            "P-001",
+            demographics={"age": 60, "gender": "F"},
+            labs=[],
+            imaging=[],
+        )
         payload = healthcare_payload("P-001", observations=obs)
-        assert payload["@model"] == "UserML"
-        assert "layers" in payload
-        assert "observation" in payload["layers"]
+        assert payload["@model"] == "UserML-SituationReport"
+        assert isinstance(payload["statements"], list)
+        groups = {s["administration"]["group"] for s in payload["statements"]}
+        assert "Observation" in groups
 
 
 class TestEducationOntology:
@@ -86,7 +92,7 @@ class TestEducationOntology:
             scores={"argument_quality": 0.82, "evidence_strength": 0.78},
         )
         assert len(interps) == 2
-        assert interps[0]["confidence"] == 0.9
+        assert interps[0]["explanation"]["confidence"] == 0.9
 
 
 class TestRecommendationOntology:
@@ -129,11 +135,11 @@ class TestFinanceOntology:
             bureau_score=710,
         )
         assert len(obs) == 5
-        assert obs[0]["predicate"] == "income_source"
-        assert obs[1]["predicate"] == "employment_record"
-        assert obs[2]["predicate"] == "debt_obligation"
-        assert obs[3]["predicate"] == "payment_history"
-        assert obs[4]["predicate"] == "credit_bureau_score"
+        assert obs[0]["mainpart"]["predicate"] == "income_source"
+        assert obs[1]["mainpart"]["predicate"] == "employment_record"
+        assert obs[2]["mainpart"]["predicate"] == "debt_obligation"
+        assert obs[3]["mainpart"]["predicate"] == "payment_history"
+        assert obs[4]["mainpart"]["predicate"] == "credit_bureau_score"
 
     def test_finance_interpretations(self):
         interps = finance_interpretations(
@@ -144,8 +150,8 @@ class TestFinanceOntology:
             default_prob=0.04,
         )
         assert len(interps) == 4
-        assert interps[0]["predicate"] == "debt_to_income_ratio"
-        assert interps[0]["object"] == 0.32
+        assert interps[0]["mainpart"]["predicate"] == "debt_to_income_ratio"
+        assert interps[0]["mainpart"]["object"] == 0.32
 
     def test_finance_payload_structure(self):
         obs = finance_observations(
@@ -156,9 +162,10 @@ class TestFinanceOntology:
             payments={"on_time_pct": 100},
         )
         payload = finance_payload("APP-001", observations=obs)
-        assert payload["@model"] == "UserML"
-        assert "layers" in payload
-        assert "observation" in payload["layers"]
+        assert payload["@model"] == "UserML-SituationReport"
+        assert isinstance(payload["statements"], list)
+        groups = {s["administration"]["group"] for s in payload["statements"]}
+        assert "Observation" in groups
 
     def test_no_protected_attributes_in_predicates(self):
         """Ensure finance ontology does not include protected attribute predicates."""
@@ -178,22 +185,26 @@ class TestValidator:
         assert violations == []
 
     def test_missing_model(self):
-        payload = {"layers": {"observation": []}}
+        payload = {"statements": []}
         valid, violations = validate_semantic_payload(payload, HEALTHCARE_PREDICATES)
         assert not valid
         assert any("@model" in v for v in violations)
 
     def test_invalid_predicate(self):
         payload = {
-            "@model": "UserML",
-            "layers": {
-                "observation": [
-                    {"subject": "P-001", "predicate": "invalid_predicate", "object": "foo"},
-                ],
-                "interpretation": [],
-                "situation": [],
-                "application": [],
-            },
+            "@model": "UserML-SituationReport",
+            "statements": [
+                {
+                    "@model": "UserML",
+                    "administration": {"group": "Observation"},
+                    "mainpart": {
+                        "subject": "P-001",
+                        "auxiliary": "hasProperty",
+                        "predicate": "invalid_predicate",
+                        "object": "foo",
+                    },
+                },
+            ],
         }
         valid, violations = validate_semantic_payload(payload, HEALTHCARE_PREDICATES)
         assert not valid
@@ -201,25 +212,30 @@ class TestValidator:
 
     def test_missing_predicate_key(self):
         payload = {
-            "@model": "UserML",
-            "layers": {
-                "observation": [
-                    {"subject": "P-001", "object": "foo"},  # no predicate
-                ],
-                "interpretation": [],
-                "situation": [],
-                "application": [],
-            },
+            "@model": "UserML-SituationReport",
+            "statements": [
+                {
+                    "@model": "UserML",
+                    "administration": {"group": "Observation"},
+                    "mainpart": {
+                        "subject": "P-001",
+                        "auxiliary": "hasProperty",
+                        "object": "foo",
+                    },  # no predicate
+                },
+            ],
         }
         valid, violations = validate_semantic_payload(payload, HEALTHCARE_PREDICATES)
         assert not valid
-        assert any("missing 'predicate'" in v for v in violations)
+        assert any("mainpart.predicate" in v for v in violations)
 
     def test_non_dict_payload(self):
         valid, violations = validate_semantic_payload("not a dict", {})
         assert not valid
 
-    def test_missing_layers(self):
-        valid, violations = validate_semantic_payload({"@model": "UserML"}, {})
+    def test_missing_statements(self):
+        valid, violations = validate_semantic_payload(
+            {"@model": "UserML-SituationReport"}, {},
+        )
         assert not valid
-        assert any("layers" in v for v in violations)
+        assert any("statements" in v for v in violations)

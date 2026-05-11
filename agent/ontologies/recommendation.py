@@ -13,6 +13,8 @@ from jhcontext.semantics import (
     userml_payload,
 )
 
+from . import inject_subject
+
 # ── Valid predicates per UserML layer ────────────────────────────────
 
 RECOMMENDATION_PREDICATES: dict[str, list[str]] = {
@@ -76,10 +78,10 @@ def recommendation_situations(user_id: str, situation_type: str, confidence: flo
 def recommendation_payload(user_id: str, observations: list, interpretations: list | None = None, situations: list | None = None, application: list | None = None) -> dict:
     """Build a complete UserML payload for the recommendation domain."""
     return userml_payload(
-        observations=observations,
-        interpretations=interpretations or [],
-        situations=situations or [],
-        application=application or [],
+        observations=inject_subject(observations, user_id),
+        interpretations=inject_subject(interpretations, user_id),
+        situations=inject_subject(situations, user_id),
+        application=inject_subject(application, user_id),
     )
 
 
@@ -103,4 +105,4 @@ def sample_recommendation(user_id: str = "user-U-54321") -> dict:
         {"predicate": "recommended_product", "object": {"name": "Sony WH-1000XM5", "price": 129.99, "confidence": 0.91}},
         {"predicate": "personalization_explanation", "object": "Matches electronics affinity and price range"},
     ]
-    return userml_payload(observations=obs, interpretations=interps, situations=sits, application=app)
+    return recommendation_payload(user_id, obs, interps, sits, app)

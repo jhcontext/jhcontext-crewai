@@ -1,0 +1,513 @@
+[
+  {
+    "context_id": "ctx-d52769aa-6afc-42fa-823c-0a0fa9a83524",
+    "schema_version": "jh:0.5",
+    "producer": "did:bank:data-collector-agent",
+    "created_at": "2026-05-09T09:15:23.875030+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "credit_assessment",
+    "semantic_payload": [
+      {
+        "@model": "UserML",
+        "layers": {
+          "observation": [
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "income_source",
+              "object": {
+                "type": "salary",
+                "monthly_gross": 3800,
+                "currency": "EUR"
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "employment_record",
+              "object": {
+                "type": "permanent_contract",
+                "tenure_months": 48
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "debt_obligation",
+              "object": {
+                "monthly_payment": 420
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "payment_history",
+              "object": {
+                "on_time_pct": 96
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "credit_bureau_score",
+              "object": 710
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-financial-data",
+        "type": "token_sequence",
+        "content_hash": "19a3a5cd02adff6b387b78dde14602f9b4955fbd7dad349cf66fe4e82f744530",
+        "timestamp": "2026-05-09T09:15:23.875056+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-financial-data",
+    "decision_influence": [
+      {
+        "agent": "Financial Data Collector Agent",
+        "categories": [
+          "financial_data",
+          "credit_assessment",
+          "banking_integration"
+        ],
+        "abstraction_level": "situation",
+        "temporal_scope": "current",
+        "influence_weights": {},
+        "confidence": 0.0
+      }
+    ],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": true,
+      "forwarding_policy": "raw_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "10615022995be9aa812a0cdc516841cb1d0641f6dfea074820c6139fad27be87",
+      "signature": "fCTRdUteHZIduQHQm2KHlNB-WYFaORtPWwvANzn8okgCXquONHDX_bkd3ZyO4mqtzc9HbdfBCGFL_XQPbpzgCg==",
+      "signer": "did:bank:data-collector-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "@vocab": "https://jhcontext.com/vocab#"
+    },
+    "@type": "jh:Envelope"
+  },
+  {
+    "context_id": "ctx-b466f54d-8841-414d-b8e6-9428b10840fd",
+    "schema_version": "jh:0.5",
+    "producer": "did:bank:risk-analyzer-agent",
+    "created_at": "2026-05-09T09:15:27.825719+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "credit_assessment",
+    "semantic_payload": [
+      {
+        "@model": "UserML",
+        "layers": {
+          "observation": [
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "income_source",
+              "object": {
+                "type": "salary",
+                "monthly_gross": 3800,
+                "currency": "EUR"
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "employment_record",
+              "object": {
+                "type": "permanent_contract",
+                "tenure_months": 48
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "debt_obligation",
+              "object": {
+                "monthly_payment": 420
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "payment_history",
+              "object": {
+                "on_time_pct": 96
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "credit_bureau_score",
+              "object": 710
+            }
+          ],
+          "interpretation": [
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "debt_to_income_ratio",
+              "object": 0.11,
+              "confidence": 0.95
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "payment_reliability",
+              "object": "excellent",
+              "confidence": 0.96
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "employment_stability",
+              "object": "stable",
+              "confidence": 0.94
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "credit_utilization",
+              "object": "moderate",
+              "confidence": 0.9
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "default_probability",
+              "object": 0.02,
+              "confidence": 0.92
+            }
+          ],
+          "situation": [
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "isInSituation",
+              "object": "creditworthy",
+              "confidence": 0.93
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-risk-analysis",
+        "type": "semantic_extraction",
+        "content_hash": "42175576a8f37c488adeb0ed53fa9dd13665c1944486fd4f0ff01b06e9e07223",
+        "timestamp": "2026-05-09T09:15:27.825770+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-risk-analysis",
+    "decision_influence": [
+      {
+        "agent": "Credit Risk Analyzer Agent",
+        "categories": [
+          "financial_data",
+          "credit_assessment",
+          "risk_analysis"
+        ],
+        "abstraction_level": "situation",
+        "temporal_scope": "current",
+        "influence_weights": {},
+        "confidence": 0.0
+      }
+    ],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": true,
+      "forwarding_policy": "semantic_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "f9646ad899295450d4f75da5aa07d764c5c97c2296826f8f5ed7f32ee9af5b8c",
+      "signature": "IUSHPjvKqr0u6LGp4EqdNz2CvUSoh_EMso08AZb-aY5fS5A9ToWsOgN0a4xewwnri5o8oSi6qkfeNzCrA9zWBA==",
+      "signer": "did:bank:risk-analyzer-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "@vocab": "https://jhcontext.com/vocab#"
+    },
+    "@type": "jh:Envelope"
+  },
+  {
+    "context_id": "ctx-443dd85c-d9e3-4bd0-bcec-5233c046368e",
+    "schema_version": "jh:0.5",
+    "producer": "did:bank:decision-agent",
+    "created_at": "2026-05-09T09:15:46.285144+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "credit_assessment",
+    "semantic_payload": [
+      {
+        "@model": "UserML",
+        "layers": {
+          "observation": [
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "income_source",
+              "object": {
+                "type": "salary",
+                "monthly_gross": 3800,
+                "currency": "EUR"
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "employment_record",
+              "object": {
+                "type": "permanent_contract",
+                "tenure_months": 48
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "debt_obligation",
+              "object": {
+                "monthly_payment": 420
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "payment_history",
+              "object": {
+                "on_time_pct": 96
+              }
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "credit_bureau_score",
+              "object": 710
+            }
+          ],
+          "interpretation": [
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "debt_to_income_ratio",
+              "object": 0.11,
+              "confidence": 0.95
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "payment_reliability",
+              "object": "excellent",
+              "confidence": 0.96
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "employment_stability",
+              "object": "stable",
+              "confidence": 0.94
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "credit_utilization",
+              "object": "moderate",
+              "confidence": 0.9
+            },
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "default_probability",
+              "object": 0.02,
+              "confidence": 0.92
+            }
+          ],
+          "situation": [
+            {
+              "subject": "APP-2026-00847",
+              "predicate": "isInSituation",
+              "object": "creditworthy",
+              "confidence": 0.93
+            }
+          ],
+          "application": [
+            {
+              "predicate": "credit_decision",
+              "object": "conditional_approval"
+            },
+            {
+              "predicate": "risk_score",
+              "object": 710
+            },
+            {
+              "predicate": "approved_amount",
+              "object": {
+                "value": 25000,
+                "currency": "EUR"
+              }
+            },
+            {
+              "predicate": "interest_rate",
+              "object": {
+                "annual_pct": 6.9,
+                "type": "fixed"
+              }
+            },
+            {
+              "predicate": "explanation_factors",
+              "object": [
+                "POSITIVE \u2014 Credit Bureau Score: 710, which is within the acceptable lending range and indicates a satisfactory credit history.",
+                "POSITIVE \u2014 Payment History: 96% on-time payments, classified as 'excellent' payment reliability (confidence 0.96). This strongly supports creditworthiness.",
+                "POSITIVE \u2014 Employment Stability: Permanent contract with 48 months (4 years) of tenure, classified as 'stable' employment (confidence 0.94). Reduces income interruption risk.",
+                "POSITIVE \u2014 Debt-to-Income Ratio (DTI): 0.11 (11%), well within acceptable thresholds. Monthly debt obligation of EUR 420 against gross monthly income of EUR 3,800 (confidence 0.95).",
+                "POSITIVE \u2014 Low Default Probability: Modelled default probability of 0.02 (2%), indicating very low likelihood of credit default (confidence 0.92).",
+                "NEUTRAL \u2014 Credit Utilization: Classified as 'moderate' (confidence 0.90). Not a negative factor, but leaves room for improvement to 'low' utilization.",
+                "CONDITIONAL \u2014 Risk level classified as HIGH per compliance policy, requiring human officer review before final disbursement to satisfy EU AI Act Article 13 and GDPR Article 22 obligations.",
+                "CONDITION 1: Final approval subject to human credit officer review and sign-off due to high-risk compliance classification.",
+                "CONDITION 2: Applicant must provide latest 3 months of payslips and bank statements for income verification prior to disbursement.",
+                "CONDITION 3: Loan disbursement contingent on no material change in applicant's financial circumstances between decision date and disbursement date."
+              ]
+            },
+            {
+              "predicate": "decision_rationale",
+              "object": "Applicant APP-2026-00847 demonstrates strong creditworthiness indicators: excellent payment reliability (96% on-time), stable permanent employment of 4 years, a low DTI of 11%, a credit bureau score of 710, and a modelled default probability of only 2%. The overall situation confidence of 0.93 supports a positive credit outcome. A conditional_approval is issued rather than a full approval due to the high-risk compliance classification mandating human oversight under EU AI Act Article 13 and GDPR Article 22. All listed conditions must be satisfied prior to final disbursement."
+            },
+            {
+              "predicate": "decision_influence",
+              "object": {
+                "categories": [
+                  "risk_indicators",
+                  "payment_history",
+                  "employment_factors",
+                  "debt_to_income",
+                  "credit_utilization"
+                ],
+                "influence_weights": {
+                  "payment_history": 0.3,
+                  "credit_bureau_score": 0.25,
+                  "employment_factors": 0.2,
+                  "debt_to_income": 0.15,
+                  "credit_utilization": 0.1
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-credit-decision",
+        "type": "semantic_extraction",
+        "content_hash": "7232faef7eeacadbd1f8fd92d697c10249d819d0d0b966d98b495300afda80fe",
+        "timestamp": "2026-05-09T09:15:46.285167+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-credit-decision",
+    "decision_influence": [
+      {
+        "agent": "did:bank:decision-agent",
+        "categories": [
+          "risk_indicators",
+          "payment_history",
+          "employment_factors",
+          "debt_to_income",
+          "credit_utilization"
+        ],
+        "abstraction_level": "situation",
+        "temporal_scope": "current",
+        "influence_weights": {},
+        "confidence": 0.0
+      }
+    ],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": true,
+      "forwarding_policy": "semantic_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "76106b6f92ab52dd7add0416b829fd162f3dae7f58a39282c6d8610d41b5f260",
+      "signature": "fRB0B-A6K_Fge6UFwpwCAnwSKiyoOO_z8GkCtvzcr_HD3GEbVLpBxjgnVFvoQ0e6loZlBBGUu0RyLNYlpwYQBw==",
+      "signer": "did:bank:decision-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "@vocab": "https://jhcontext.com/vocab#"
+    },
+    "@type": "jh:Envelope"
+  },
+  {
+    "context_id": "ctx-44a01d92-0440-4601-b756-2d90264745fc",
+    "schema_version": "jh:0.5",
+    "producer": "did:bank:audit-agent",
+    "created_at": "2026-05-09T09:17:17.562773+00:00",
+    "ttl": "PT30M",
+    "status": "active",
+    "scope": "credit_assessment",
+    "semantic_payload": [],
+    "artifacts_registry": [
+      {
+        "artifact_id": "art-audit",
+        "type": "tool_result",
+        "content_hash": "0867e25e83d8e88d2dc470cecdb5b0aeb8a2503839727cdd314265e32b14fc52",
+        "timestamp": "2026-05-09T09:17:17.562822+00:00",
+        "deterministic": false,
+        "metadata": {}
+      }
+    ],
+    "passed_artifact_pointer": "art-audit",
+    "decision_influence": [],
+    "privacy": {
+      "data_category": "behavioral",
+      "legal_basis": "consent",
+      "retention": "P7D",
+      "storage_policy": "centralized-encrypted",
+      "feature_suppression": [],
+      "pii_detached": false
+    },
+    "compliance": {
+      "risk_level": "high",
+      "human_oversight_required": true,
+      "forwarding_policy": "semantic_forward"
+    },
+    "provenance_ref": {},
+    "proof": {
+      "canonicalization": "URDNA2015",
+      "content_hash": "27bbf189bf6a14cad3b7de34bf13d1a8dd41327a935acf0a8714017cedd60281",
+      "signature": "4AiV4EvHFxJZ9oQ4OKFWotJ8UbpNuj7HLwxnEPmgjmS-3Wj-DlZk9_0d4XfQzwuphnDRDU8txz_NJ0ylQtKBDA==",
+      "signer": "did:bank:audit-agent"
+    },
+    "@context": {
+      "jh": "https://jhcontext.com/vocab#",
+      "prov": "http://www.w3.org/ns/prov#",
+      "xsd": "http://www.w3.org/2001/XMLSchema#",
+      "@vocab": "https://jhcontext.com/vocab#"
+    },
+    "@type": "jh:Envelope"
+  }
+]

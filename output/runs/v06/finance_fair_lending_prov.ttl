@@ -1,0 +1,27 @@
+@prefix jh: <https://jhcontext.com/vocab#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+jh:art-fair_lending a prov:Entity ;
+    rdfs:label "Output of fair_lending" ;
+    prov:wasGeneratedBy jh:act-fair_lending ;
+    jh:artifactType "semantic_extraction" ;
+    jh:contentHash "1160d1376108298e8647caebe603487af8d1fc8fe7a0f228938ac4a92e57fcb9" .
+
+<did:bank:fair-lending-agent> a prov:Agent ;
+    rdfs:label "did:bank:fair-lending-agent" ;
+    prov:actedOnBehalfOf <https://jhcontext.com/vocab#crew:fair-lending> ;
+    jh:role "fair_lending" .
+
+jh:act-fair_lending a prov:Activity ;
+    rdfs:label "fair_lending" ;
+    prov:endedAtTime "2026-05-09T12:40:31.998683+00:00"^^xsd:dateTime ;
+    prov:startedAtTime "2026-05-09T12:40:15.181514+00:00"^^xsd:dateTime ;
+    prov:wasAssociatedWith <did:bank:fair-lending-agent> .
+
+<https://jhcontext.com/vocab#crew:fair-lending> a prov:Agent,
+        prov:SoftwareAgent ;
+    rdfs:label "Fair Lending Crew" ;
+    jh:agentType "crew" .
+

@@ -13,6 +13,8 @@ from jhcontext.semantics import (
     userml_payload,
 )
 
+from . import inject_subject
+
 # ── Valid predicates per UserML layer ────────────────────────────────
 
 EDUCATION_PREDICATES: dict[str, list[str]] = {
@@ -77,10 +79,10 @@ def education_situations(essay_id: str, grade: str, confidence: float = 0.9) -> 
 def education_payload(essay_id: str, observations: list, interpretations: list | None = None, situations: list | None = None, application: list | None = None) -> dict:
     """Build a complete UserML payload for the education domain."""
     return userml_payload(
-        observations=observations,
-        interpretations=interpretations or [],
-        situations=situations or [],
-        application=application or [],
+        observations=inject_subject(observations, essay_id),
+        interpretations=inject_subject(interpretations, essay_id),
+        situations=inject_subject(situations, essay_id),
+        application=inject_subject(application, essay_id),
     )
 
 
@@ -107,4 +109,4 @@ def sample_education(essay_id: str = "essay-S-98765") -> dict:
         {"predicate": "grade_confidence", "object": 0.88},
         {"predicate": "rubric_weights", "object": {"argument_quality": 0.3, "evidence_use": 0.3, "writing_clarity": 0.2, "critical_thinking": 0.2}},
     ]
-    return userml_payload(observations=obs, interpretations=interps, situations=sits, application=app)
+    return education_payload(essay_id, obs, interps, sits, app)

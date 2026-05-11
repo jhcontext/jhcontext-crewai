@@ -86,9 +86,18 @@ HIRING_AGENT_DIDS = (
 
 @dataclass
 class HiringFlowState:
+    """Multi-stage hiring pipeline state.
+
+    Carries one ForwardingEnforcer per policy because SDK v0.6 fixes each
+    enforcer to a single policy and disallows mixing. The hiring pipeline
+    is intentionally two composed pipelines: a one-step raw sourcing stage,
+    then a five-step semantic decision stage (parsing → decision_support).
+    The terminal artifact of stage 1 feeds stage 2 — see ``enforcer_for()``.
+    """
     context_id: str
     prov: PROVGraph
-    enforcer: ForwardingEnforcer
+    raw_enforcer: ForwardingEnforcer
+    sem_enforcer: ForwardingEnforcer
     envelopes_by_step: dict[str, Envelope] = field(default_factory=dict)
     raw_outputs_by_step: dict[str, str] = field(default_factory=dict)
     forwarded_outputs_by_step: dict[str, str] = field(default_factory=dict)
@@ -97,6 +106,13 @@ class HiringFlowState:
 
     def previous_step(self) -> str | None:
         return self.step_order[-1] if self.step_order else None
+
+    def enforcer_for(self, envelope: Envelope) -> ForwardingEnforcer:
+        """Pick the enforcer whose policy matches the envelope's declaration."""
+        declared = envelope.compliance.forwarding_policy
+        if declared == ForwardingPolicy.RAW_FORWARD:
+            return self.raw_enforcer
+        return self.sem_enforcer
 
 
 # ---------------------------------------------------------------------------
@@ -175,9 +191,12 @@ def make_task_callback(state: HiringFlowState):
         )
         state.raw_outputs_by_step[step_name] = before_blob
 
-        # 4 + 5. Resolve policy and rewrite ``output.raw``.
-        effective_policy = state.enforcer.resolve(signed)
-        forwarded = state.enforcer.filter_output(signed, effective_policy)
+        # 4 + 5. Pick the enforcer for this stage (raw for sourcing, semantic
+        # for parsing+). Each enforcer is locked to one policy in SDK v0.6,
+        # so we route by the envelope's declared policy.
+        enforcer = state.enforcer_for(signed)
+        effective_policy = enforcer.resolve(signed)
+        forwarded = enforcer.filter_output(signed, effective_policy)
         state.forwarded_outputs_by_step[step_name] = forwarded
         task_output.raw = forwarded
 
@@ -453,8 +472,18 @@ def run_hiring_pipeline(
         prov.add_agent(did, did)
         prov.acted_on_behalf_of(did, HIRING_CREW_ID)
 
-    enforcer = ForwardingEnforcer()
-    state = HiringFlowState(context_id=context_id, prov=prov, enforcer=enforcer)
+    # Hiring is two composed pipelines under SDK v0.6's uniform-policy contract:
+    #   stage 1 (sourcing, 1 task)     — raw_forward
+    #   stage 2 (parsing → decision, 5) — semantic_forward
+    # Stage 1's signed envelope is the input artifact for stage 2.
+    raw_enforcer = ForwardingEnforcer(policy=ForwardingPolicy.RAW_FORWARD)
+    sem_enforcer = ForwardingEnforcer(policy=ForwardingPolicy.SEMANTIC_FORWARD)
+    state = HiringFlowState(
+        context_id=context_id,
+        prov=prov,
+        raw_enforcer=raw_enforcer,
+        sem_enforcer=sem_enforcer,
+    )
 
     # Build the crew with the chosen LLM.
     from agent.crews.hiring.hiring_crew import HiringCrew, install_llms
@@ -545,7 +574,12 @@ def run_hiring_pipeline(
 
     metrics["context_id"] = context_id
     metrics["steps"] = state.step_order
-    metrics["semantic_boundary_reached"] = enforcer.semantic_boundary_reached
+    # Two composed pipelines: report both stages so a reviewer can see the
+    # raw→semantic transition at the parsing handoff.
+    metrics["pipeline_forwarding_policies"] = {
+        "sourcing_stage": state.raw_enforcer.policy.value,
+        "decision_stage": state.sem_enforcer.policy.value,
+    }
     metrics["procurement_passed"] = procurement_audit.get("overall_passed", False)
     metrics["inflight_passed"] = inflight_audit.get("overall_passed", False)
     metrics["overall_passed"] = audit.overall_passed
