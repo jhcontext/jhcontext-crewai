@@ -1,0 +1,16 @@
+# reasoning_chain.sparql — citizen Q3 (structural; ONLY works on the
+# Semantic-Forward pipeline because Raw-Forward lacks the intermediate
+# interpretation node that anchors the chain).
+#
+# Traces wasDerivedFrom edges from the final decision artefact back to the
+# originating observation (recorded_income). The result is a path of artefact
+# IDs ordered from decision → extractor → intake. This is what makes the
+# decision's reasoning *structurally* auditable, not just its source list.
+
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX jh:   <https://jhcontext.com/vocab#>
+
+SELECT DISTINCT ?step WHERE {
+  jh:art-decision prov:wasDerivedFrom+ ?step .
+}
+ORDER BY ?step

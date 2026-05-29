@@ -51,6 +51,7 @@ Each scenario demonstrates a different EU AI Act compliance pattern:
 | [Recommendation](docs/crews/recommendation.md) | LOW-risk | LOW | 3 (profile → search → personalize) | Full provenance with Raw-Forward policy |
 | [Finance](docs/crews/finance.md) | Annex III 5(b) — Composite | HIGH | 7 (data → risk → decision → oversight ╳ fair lending → audit) | All 4 patterns: negative proof + temporal oversight + workflow isolation + PII detachment |
 | [Hiring](agent/crews/hiring/README.md) | Annex III §4(a) + Arts. 5(1)(f)/(g), 13, 14, 26 | HIGH | 6 (sourcing → parsing → screening → interview → ranking → decision-support) + recruiter | Quadripartite Semantic-Forward at every handoff (every task outputs a `FlatEnvelope`); 7 HR-specific verifiers + cohort 4/5 disparate-impact test |
+| Benefits A3I — toeslagenaffaire anchor | GDPR Arts. 13-15 + EU AI Act Arts. 14, 86 | HIGH | 3 (intake → semantic extractor → decision) | Two pipelines side-by-side (Raw-Forward + Semantic-Forward) + four citizen SPARQL queries (`integrity`, `semantic_claims`, `reasoning_chain`, `counterfactual`) demonstrating what Semantic-Forward enables that Raw-Forward does not. Offline deterministic runner at `agent/scenarios/benefits_a3i/simulate.py` (no LLM key needed). |
 
 ### Offline-first healthcare scenarios
 

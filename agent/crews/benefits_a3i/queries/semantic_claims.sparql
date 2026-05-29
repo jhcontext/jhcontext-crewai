@@ -1,0 +1,20 @@
+# semantic_claims.sparql — citizen Q2 (semantic level; ONLY non-empty on
+# the Semantic-Forward pipeline).
+#
+# Returns the interpretation-layer statements (one row per statement) that
+# the decision agent received from the upstream extractor. Each statement is
+# stored in the PROV graph as its own child entity carrying
+# jh:semantic_layer / jh:semantic_predicate / jh:semantic_object /
+# (optional) jh:semantic_confidence triples. The extractor's parent
+# artefact aggregates them via prov:wasDerivedFrom.
+
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX jh:   <https://jhcontext.com/vocab#>
+
+SELECT DISTINCT ?stmt ?predicate ?object ?confidence WHERE {
+  ?stmt jh:semantic_layer    "interpretation" .
+  ?stmt jh:semantic_predicate ?predicate .
+  ?stmt jh:semantic_object    ?object .
+  OPTIONAL { ?stmt jh:semantic_confidence ?confidence }
+}
+ORDER BY ?predicate

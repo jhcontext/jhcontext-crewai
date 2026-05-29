@@ -1,0 +1,127 @@
+intake_task:
+  description: >
+    {_forwarding_preamble}Receive a citizen's benefits-claim inquiry and
+    normalise it into structured observations.
+
+    Citizen question: "{citizen_question}"
+    Case record: claim_id={claim_id}, citizen_id={citizen_id},
+    recorded_income_eur={income_eur}, current_tier={current_tier},
+    requested_tier={requested_tier}, year={year}.
+
+    Output a jhcontext protocol envelope. Place the observations in
+    ``semantic_payload`` using the **UserML format**:
+
+    {{"@model": "UserML", "layers": {{"observation": [
+      {{"subject": "{claim_id}", "predicate": "recorded_income",
+        "object": {{"value": {income_eur}, "currency": "EUR", "year": {year}}}}},
+      {{"subject": "{claim_id}", "predicate": "claim_tier_requested",
+        "object": "{requested_tier}"}},
+      {{"subject": "{claim_id}", "predicate": "claim_tier_current",
+        "object": "{current_tier}"}}
+    ]}}}}
+
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-intake" and type="token_sequence". Set
+    scope="benefits.eligibility_explanation",
+    producer="did:gov:a3i-intake-agent",
+    compliance.risk_level="high",
+    compliance.human_oversight_required=true,
+    compliance.forwarding_policy="raw_forward".
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    (observation layer only), one TOKEN_SEQUENCE artifact in
+    artifacts_registry, and high-risk compliance metadata.
+  agent: intake_agent
+
+extractor_task:
+  description: >
+    {_forwarding_preamble}You will receive a jhcontext protocol envelope
+    from the intake task. Read the ``semantic_payload`` field — this is
+    the auditable observation layer for the citizen's claim.
+
+    Generate interpretation-layer statements that classify the case
+    against benefits-eligibility rules. Compare recorded_income against
+    the tier threshold (35000 EUR for tier 2 in the 2024 rules) and
+    produce a ``tier_eligibility`` interpretation. Add a ``threshold_gap``
+    interpretation with the numeric delta. Add a ``situation`` layer
+    statement classifying the claim as ``claim_eligible`` or
+    ``claim_ineligible`` for the requested tier.
+
+    Output a jhcontext protocol envelope. Place your extraction in
+    ``semantic_payload`` using the **UserML format** with interpretation
+    and situation layers:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [
+        {{"subject": "{claim_id}", "predicate": "tier_eligibility",
+          "object": "ineligible_above_threshold", "confidence": 0.95}},
+        {{"subject": "{claim_id}", "predicate": "threshold_gap",
+          "object": {{"value": 7000, "currency": "EUR"}}, "confidence": 0.99}}
+      ],
+      "situation": [
+        {{"subject": "{claim_id}", "predicate": "isInSituation",
+          "object": "claim_ineligible_for_requested_tier", "confidence": 0.95}}
+      ]
+    }}}}
+
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-extractor" and type="semantic_extraction". Set
+    scope="benefits.eligibility_explanation",
+    producer="did:gov:a3i-semantic-extractor",
+    compliance.risk_level="high",
+    compliance.human_oversight_required=true,
+    compliance.forwarding_policy="semantic_forward".
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    (interpretation + situation layers), one SEMANTIC_EXTRACTION artifact
+    in artifacts_registry, and forwarding_policy=semantic_forward.
+  agent: semantic_extractor
+
+decision_task:
+  description: >
+    {_forwarding_preamble}You will receive a jhcontext protocol envelope
+    from the extractor task. Read the ``semantic_payload`` field — this
+    is the auditable interpretation and situation layer for the citizen's
+    claim. You MUST consume only these semantic statements; do not
+    re-fetch the raw observation values.
+
+    Generate a citizen-facing explanation (3-5 sentences, 9th-grade
+    reading level) that cites the policy basis for the claim decision.
+    The explanation must reference the threshold value, the income
+    figure, and the resulting tier classification, all sourced from
+    the upstream semantic_payload.
+
+    Output a jhcontext protocol envelope. Place your explanation in
+    ``semantic_payload`` using the **UserML format** with application
+    layer:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [],
+      "situation": [],
+      "application": [
+        {{"predicate": "citizen_explanation",
+          "object": "Your claim was reduced because your recorded income exceeds the tier-2 threshold by 7000 EUR. See the three cited sources below."}},
+        {{"predicate": "cited_sources",
+          "object": ["Child Benefit Eligibility Regulation 2024",
+                     "Income Threshold Guidance §4.2",
+                     "Benefits Appeals Procedure"]}},
+        {{"predicate": "human_oversight_required", "object": true}}
+      ]
+    }}}}
+
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-decision" and type="semantic_extraction". Set
+    scope="benefits.eligibility_explanation",
+    producer="did:gov:a3i-decision-agent",
+    compliance.risk_level="high",
+    compliance.human_oversight_required=true,
+    compliance.forwarding_policy="semantic_forward".
+    Set passed_artifact_pointer to point at art-extractor.
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    (application layer only), one SEMANTIC_EXTRACTION artifact in
+    artifacts_registry with passed_artifact_pointer set to "art-extractor",
+    and forwarding_policy=semantic_forward.
+  agent: decision_agent

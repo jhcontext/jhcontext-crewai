@@ -1,0 +1,21 @@
+# counterfactual.sparql — citizen Q4 (counterfactual dependency; ONLY
+# non-empty on the Semantic-Forward pipeline).
+#
+# Returns the interpretation-layer statements that have a
+# prov:wasDerivedFrom path back to an observation-layer statement. If the
+# citizen succeeds in changing the recorded observation (e.g. via the
+# appeals procedure that corrects the income figure), the returned
+# interpretations are the ones that would need to be re-derived — i.e. the
+# answer to "which of the agent's conclusions depend on this observation?".
+
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX jh:   <https://jhcontext.com/vocab#>
+
+SELECT DISTINCT ?interp ?interp_predicate ?obs_predicate WHERE {
+  ?interp jh:semantic_layer    "interpretation" .
+  ?interp jh:semantic_predicate ?interp_predicate .
+  ?interp prov:wasDerivedFrom+ ?obs .
+  ?obs    jh:semantic_layer    "observation" .
+  ?obs    jh:semantic_predicate ?obs_predicate .
+}
+ORDER BY ?interp_predicate ?obs_predicate

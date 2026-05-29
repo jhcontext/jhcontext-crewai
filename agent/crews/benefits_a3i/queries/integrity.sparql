@@ -1,0 +1,16 @@
+# integrity.sparql — citizen Q1 (artifact-pointer level; works for both
+# Raw-Forward and Semantic-Forward pipelines).
+#
+# Returns the set of artefacts that the decision activity actually consumed
+# (via prov:used). Compared against the cited sources displayed to the
+# citizen, this proves the deployer did not append spurious citations
+# post-hoc.
+
+PREFIX prov: <http://www.w3.org/ns/prov#>
+PREFIX jh:   <https://jhcontext.com/vocab#>
+
+SELECT DISTINCT ?artifact_id WHERE {
+  jh:act-decision prov:used ?artifact .
+  BIND(REPLACE(STR(?artifact), STR(jh:), "") AS ?artifact_id)
+}
+ORDER BY ?artifact_id
