@@ -1,0 +1,97 @@
+# semantic_forward pipeline: triage -> allocation.
+# Both tasks run under semantic_forward; each handoff is filtered to the
+# semantic_payload only. The first task consumes the raw pipeline's terminal
+# artifact (the ontology-classified semantic_payload) via
+# {upstream_semantic_payload}.
+
+triage_task:
+  description: >
+    {_forwarding_preamble}You will receive the ontology-classified semantic
+    payload from the raw pipeline:
+
+    {upstream_semantic_payload}
+
+    Read ONLY the ``semantic_payload`` (interpretation and situation
+    statements). Assign a triage priority: how urgently the patient must be
+    seen, with risk indicators and a confidence score.
+
+    Output a jhcontext protocol envelope. Place your triage assessment in
+    ``semantic_payload`` using the **UserML format** with interpretation and
+    situation layers:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [
+        {{"subject": "PATIENT_ID", "predicate": "risk_assessment", "object": "high", "confidence": 0.87}}
+      ],
+      "situation": [
+        {{"subject": "PATIENT_ID", "predicate": "isInSituation", "object": "acute_episode", "confidence": 0.84}}
+      ]
+    }}}}
+
+    Valid interpretation predicates: risk_assessment, clinical_pattern,
+    treatment_response, biomarker_trend. Valid situation types:
+    treatment_candidate, monitoring_required, acute_episode, stable_remission.
+
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-triage" and type="semantic_extraction".
+    Set scope="healthcare_treatment_recommendation",
+    producer="did:hospital:triage-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="semantic_forward".
+    Include decision_influence with categories like "risk_indicators",
+    "clinical_situation" and appropriate influence_weights.
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing the triage interpretation and situation layers, one
+    SEMANTIC_EXTRACTION artifact (art-triage) in artifacts_registry, a
+    compliance block set to high risk with forwarding_policy=semantic_forward,
+    and decision_influence metadata.
+  agent: triage_agent
+
+allocation_task:
+  description: >
+    {_forwarding_preamble}You will receive a jhcontext protocol envelope from
+    the triage task. Read ONLY the ``semantic_payload`` field.
+
+    Generate a resource-allocation / treatment recommendation with: (a) the
+    recommended allocation or treatment plan, (b) a confidence score (0-1),
+    (c) supporting evidence from the semantic payload, (d) risk assessment.
+    Flag human_oversight_required=true for any case with confidence < 0.95 or
+    risk_level=high.
+
+    Output a jhcontext protocol envelope. Place your recommendation in
+    ``semantic_payload`` using the **UserML format** with situation and
+    application layers:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [],
+      "situation": [
+        {{"subject": "PATIENT_ID", "predicate": "isInSituation", "object": "treatment_candidate", "confidence": 0.87}}
+      ],
+      "application": [
+        {{"predicate": "treatment_recommendation", "object": "continue_chemotherapy_with_reassessment"}},
+        {{"predicate": "oversight_required", "object": true}},
+        {{"predicate": "confidence_score", "object": 0.87}}
+      ]
+    }}}}
+
+    Valid application predicates: treatment_recommendation,
+    oversight_required, confidence_score.
+
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-allocation" and type="semantic_extraction".
+    Set scope="healthcare_treatment_recommendation",
+    producer="did:hospital:allocation-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="semantic_forward".
+    Include decision_influence with categories like "clinical_situation",
+    "treatment_protocols", "risk_assessment" and influence_weights.
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing situation and application layers (allocation/treatment plan,
+    confidence, evidence, risk), one SEMANTIC_EXTRACTION artifact
+    (art-allocation) in artifacts_registry, a compliance block set to high
+    risk with oversight required, and decision_influence metadata.
+  agent: allocation_agent

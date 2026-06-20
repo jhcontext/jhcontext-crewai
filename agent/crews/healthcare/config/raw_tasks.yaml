@@ -1,0 +1,84 @@
+# raw_forward pipeline: sensor -> ontology classification.
+# Both tasks run under raw_forward; the full envelope crosses the
+# sensor -> ontology handoff so the classifier sees the raw signal.
+
+sensor_task:
+  description: >
+    {_forwarding_preamble}Read the raw clinical signals and observations for
+    patient {patient_id}: demographics (age: {age}, gender: {gender}), lab
+    results ({lab_results}), imaging metadata ({imaging_metadata}). Do NOT
+    interpret or classify — emit the raw observations verbatim.
+
+    Output a jhcontext protocol envelope. Place all raw observations in the
+    ``semantic_payload`` field using the **UserML format**:
+
+    {{"@model": "UserML", "layers": {{"observation": [
+      {{"subject": "{patient_id}", "predicate": "demographic", "object": {{"age": {age}, "gender": "{gender}"}}}},
+      {{"subject": "{patient_id}", "predicate": "lab_result", "object": {{"name": "CEA", "value": 12.5, "unit": "ng/mL"}}}},
+      {{"subject": "{patient_id}", "predicate": "imaging_finding", "object": "2.3cm pulmonary nodule RUL"}}
+    ]}}}}
+
+    Valid observation predicates: vital_sign, lab_result, imaging_finding,
+    demographic, medication_history. Each entry MUST have subject, predicate,
+    and object keys.
+
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-sensor" and type="token_sequence".
+    Set scope="healthcare_treatment_recommendation",
+    producer="did:hospital:sensor-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="raw_forward".
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing raw patient observations (demographics, lab results, imaging
+    metadata) using valid healthcare predicates, artifacts_registry with one
+    TOKEN_SEQUENCE artifact, and a compliance block set to high risk with
+    human oversight required and forwarding_policy=raw_forward.
+  agent: sensor_agent
+
+ontology_classification_task:
+  description: >
+    {_forwarding_preamble}You will receive the raw sensor envelope. Because
+    this is the raw_forward stage, you may read the full envelope, including
+    the raw observations.
+
+    Classify the raw observations against clinical ontologies (SNOMED CT,
+    LOINC). Produce the canonical semantic interpretation of the patient's
+    clinical situation: risk indicators, clinical patterns, and the situation
+    the patient is in. This output is the semantic_payload that the
+    downstream semantic_forward pipeline will treat as its ONLY input.
+
+    Output a jhcontext protocol envelope. Place your ontology-coded
+    extraction in ``semantic_payload`` using the **UserML format** with
+    interpretation and situation layers:
+
+    {{"@model": "UserML", "layers": {{
+      "observation": [],
+      "interpretation": [
+        {{"subject": "PATIENT_ID", "predicate": "risk_assessment", "object": "high", "confidence": 0.87}},
+        {{"subject": "PATIENT_ID", "predicate": "clinical_pattern", "object": "responding_to_treatment", "confidence": 0.82}}
+      ],
+      "situation": [
+        {{"subject": "PATIENT_ID", "predicate": "isInSituation", "object": "treatment_candidate", "confidence": 0.87}}
+      ]
+    }}}}
+
+    Valid interpretation predicates: risk_assessment, clinical_pattern,
+    treatment_response, biomarker_trend. Valid situation types:
+    treatment_candidate, monitoring_required, acute_episode, stable_remission.
+
+    Register one artifact in ``artifacts_registry`` with
+    artifact_id="art-ontology" and type="semantic_extraction".
+    Set scope="healthcare_treatment_recommendation",
+    producer="did:hospital:ontology-agent",
+    compliance.risk_level="high", compliance.human_oversight_required=true,
+    compliance.forwarding_policy="raw_forward".
+    Include decision_influence with categories like "patient_history",
+    "risk_indicators" and appropriate influence_weights.
+  expected_output: >
+    A jhcontext Envelope JSON with semantic_payload in UserML format
+    containing SNOMED/LOINC-coded interpretation and situation layers, one
+    SEMANTIC_EXTRACTION artifact (art-ontology) in artifacts_registry, a
+    compliance block set to high risk with forwarding_policy=raw_forward, and
+    decision_influence metadata.
+  agent: ontology_agent

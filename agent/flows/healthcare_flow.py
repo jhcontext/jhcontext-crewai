@@ -1,16 +1,24 @@
 """Healthcare Human Oversight Flow — Article 14 EU AI Act.
 
-3-step pipeline: clinical_pipeline (sensor→situation→decision) → oversight → audit.
+The clinical workflow is two *composed* pipelines (PAC-AI mixed-mode):
 
-The clinical pipeline runs as a single multi-task crew (HealthcareClinicalCrew)
-with Semantic-Forward task chaining: each task outputs a full jhcontext Envelope,
-and subsequent tasks consume the ``semantic_payload`` field as canonical input.
+  raw_pipeline (raw_forward)        : sensor → ontology_classification
+  semantic_pipeline (semantic_fwd)  : triage → allocation
+  → physician_oversight → compliance_audit
+
+The raw pipeline reads the raw signal and classifies it against a clinical
+ontology; the full envelope crosses its internal handoff. Its terminal
+artifact (the ontology-classified ``semantic_payload``) is fed as the input
+to the semantic pipeline, whose handoffs are filtered to the
+``semantic_payload`` only. Each pipeline runs under its own
+``ForwardingEnforcer`` (swapped on ``self.state["_enforcer"]`` per stage),
+so a raw-stage envelope declaring ``raw_forward`` no longer collides with a
+semantic-stage enforcer — this is the documented way to compose modes.
 
 Task-level persistence happens in parallel via ``_persist_task_callback`` —
-each task's Envelope is signed and POSTed to the backend while the next task runs.
-
-Physician oversight records 4 individual document-access activities in the PROV
-graph with real timestamps, enabling ``verify_temporal_oversight()`` validation.
+each task's Envelope is signed and POSTed to the backend while the next task
+runs. Physician oversight records 4 document-access activities in the PROV
+graph with real timestamps, enabling ``verify_temporal_oversight()``.
 """
 
 from __future__ import annotations
@@ -24,12 +32,13 @@ from crewai.flow.flow import Flow, listen, start
 
 from agent.crews.healthcare.crew import (
     HealthcareAuditCrew,
-    HealthcareClinicalCrew,
     HealthcareOversightCrew,
+    HealthcareRawCrew,
+    HealthcareSemanticCrew,
 )
 from agent.protocol.context_mixin import ContextMixin
 
-from jhcontext import ArtifactType, RiskLevel
+from jhcontext import ArtifactType, ForwardingEnforcer, ForwardingPolicy, RiskLevel
 from jhcontext.audit import (
     generate_audit_report,
     verify_integrity,
@@ -67,50 +76,91 @@ class HealthcareFlow(Flow, ContextMixin):
             human_oversight=True,
         )
 
-        # Register the clinical pipeline crew in the PROV graph.
-        # The physician (dr-chen) is intentionally outside the crew —
-        # oversight must be external to the decision-making pipeline.
+        # Register the two composed clinical pipelines in the PROV graph.
+        # The physician (dr-chen) is intentionally outside both crews —
+        # oversight must be external to the decision-making pipelines.
         self._register_crew(
-            crew_id="crew:clinical-pipeline",
-            label="Clinical Pipeline Crew",
+            crew_id="crew:raw-pipeline",
+            label="Raw-Forward Pipeline Crew",
             agent_ids=[
                 "did:hospital:sensor-agent",
-                "did:hospital:situation-agent",
-                "did:hospital:decision-agent",
+                "did:hospital:ontology-agent",
+            ],
+        )
+        self._register_crew(
+            crew_id="crew:semantic-pipeline",
+            label="Semantic-Forward Pipeline Crew",
+            agent_ids=[
+                "did:hospital:triage-agent",
+                "did:hospital:allocation-agent",
             ],
         )
 
         print(f"[Healthcare] Initialized context: {context_id}")
-        return self.state.get("patient_input", self._default_patient())
+        self.state["patient_input"] = self.state.get(
+            "patient_input", self._default_patient()
+        )
+        return self.state["patient_input"]
 
     @listen(init)
-    def clinical_pipeline(self, input_data):
-        """Steps 1-3: sensor → situation → decision (single multi-task crew).
+    def raw_pipeline(self, input_data):
+        """Pipeline 1 (raw_forward): sensor → ontology classification.
 
-        The HealthcareClinicalCrew runs 3 tasks sequentially. Each task
-        outputs a full jhcontext Envelope. The task_callback persists each
-        Envelope to the backend in parallel with the next task's execution.
+        Reads the raw signal and classifies it against a clinical ontology.
+        Under raw_forward the full envelope crosses the internal handoff, so
+        the classifier sees the raw observations. The terminal artifact (the
+        ontology-classified semantic_payload) is returned to feed pipeline 2.
         """
-        print("[Healthcare] Steps 1-3: Clinical pipeline (Semantic-Forward)...")
+        print("[Healthcare] Pipeline 1/2: Raw-Forward (sensor → ontology)...")
 
-        clinical_crew = HealthcareClinicalCrew()
-        crew_instance = clinical_crew.crew()
+        # Stage-local enforcer + preamble (RAW_FORWARD).
+        self.state["_enforcer"] = ForwardingEnforcer(ForwardingPolicy.RAW_FORWARD)
+        self.state["_forwarding_preamble"] = ForwardingPolicy.RAW_FORWARD.format_preamble(
+            risk_level="high"
+        )
+
+        crew_instance = HealthcareRawCrew().crew()
         crew_instance.task_callback = self._persist_task_callback
 
-        preamble = self.state["_forwarding_preamble"]
         result = crew_instance.kickoff(inputs={
             **input_data,
-            "_forwarding_preamble": preamble,
+            "_forwarding_preamble": self.state["_forwarding_preamble"],
+        })
+        return result.raw
+
+    @listen(raw_pipeline)
+    def semantic_pipeline(self, raw_terminal):
+        """Pipeline 2 (semantic_forward): triage → allocation.
+
+        Consumes the raw pipeline's terminal artifact (the ontology-classified
+        semantic_payload) as input; each handoff is filtered to the
+        semantic_payload only.
+        """
+        print("[Healthcare] Pipeline 2/2: Semantic-Forward (triage → allocation)...")
+
+        # Stage-local enforcer + preamble (SEMANTIC_FORWARD).
+        self.state["_enforcer"] = ForwardingEnforcer(ForwardingPolicy.SEMANTIC_FORWARD)
+        self.state["_forwarding_preamble"] = (
+            ForwardingPolicy.SEMANTIC_FORWARD.format_preamble(risk_level="high")
+        )
+
+        crew_instance = HealthcareSemanticCrew().crew()
+        crew_instance.task_callback = self._persist_task_callback
+
+        result = crew_instance.kickoff(inputs={
+            **self.state["patient_input"],
+            "upstream_semantic_payload": raw_terminal,
+            "_forwarding_preamble": self.state["_forwarding_preamble"],
         })
 
-        # Log the treatment decision
+        # Log the allocation decision
         self._log_decision(
             outcome={"recommendation": result.raw[:200], "requires_oversight": True},
-            agent_id="did:hospital:decision-agent",
+            agent_id="did:hospital:allocation-agent",
         )
         return result.raw
 
-    @listen(clinical_pipeline)
+    @listen(semantic_pipeline)
     def physician_oversight(self, decision_output):
         """Step 4: Physician oversight with fine-grained PROV events.
 
@@ -182,7 +232,7 @@ class HealthcareFlow(Flow, ContextMixin):
         human_activities = [e[0] for e in SOURCE_DOCUMENTS]
         temporal_result = verify_temporal_oversight(
             prov=prov,
-            ai_activity_id="act-decision",
+            ai_activity_id="act-allocation",
             human_activities=human_activities,
             min_review_seconds=5.0,  # simulated (real: 300.0)
         )
@@ -214,7 +264,7 @@ class HealthcareFlow(Flow, ContextMixin):
             artifact_type=ArtifactType.TOOL_RESULT,
             started_at=t0.isoformat(),
             ended_at=t1.isoformat(),
-            used_artifacts=["art-oversight", "art-decision", "art-situation", "art-sensor"],
+            used_artifacts=["art-oversight", "art-allocation", "art-triage", "art-ontology", "art-sensor"],
         )
 
         # Save outputs for paper evidence

@@ -1,7 +1,15 @@
 """Healthcare compliance crews — Article 14 human oversight.
 
-HealthcareClinicalCrew: multi-task crew (sensor → situation → decision)
-demonstrating Semantic-Forward task chaining with full Envelope output.
+The cardiac-triage clinical workflow is two *composed* pipelines (PAC-AI
+mixed-mode): a raw_forward pipeline whose terminal artifact feeds a
+semantic_forward pipeline.
+
+- HealthcareRawCrew      : sensor → ontology_classification (raw_forward).
+  Reads the raw signal and classifies it against a clinical ontology
+  (SNOMED/LOINC); the full envelope crosses the internal handoff.
+- HealthcareSemanticCrew : triage → allocation (semantic_forward).
+  Consumes only the upstream ontology-classified semantic_payload; each
+  handoff is filtered to the semantic_payload.
 
 HealthcareOversightCrew / HealthcareAuditCrew: single-task crews kept
 separate for regulatory isolation (physician oversight and audit must
@@ -24,34 +32,26 @@ from agent.libs.llms import (
 
 
 @CrewBase
-class HealthcareClinicalCrew:
-    """Clinical pipeline: sensor → situation → decision (3 agents, 3 tasks)."""
+class HealthcareRawCrew:
+    """raw_forward pipeline: sensor → ontology_classification (2 agents, 2 tasks)."""
 
-    agents_config = "config/clinical_agents.yaml"
-    tasks_config = "config/clinical_tasks.yaml"
+    agents_config = "config/raw_agents.yaml"
+    tasks_config = "config/raw_tasks.yaml"
 
     @agent
     def sensor_agent(self) -> Agent:
         return Agent(
             config=self.agents_config["sensor_agent"],
             verbose=True,
-            llm=llm_data_claude,  # Haiku — structured data extraction
+            llm=llm_data_claude,  # Haiku — raw data extraction
         )
 
     @agent
-    def situation_agent(self) -> Agent:
+    def ontology_agent(self) -> Agent:
         return Agent(
-            config=self.agents_config["situation_agent"],
+            config=self.agents_config["ontology_agent"],
             verbose=True,
-            llm=llm_classifier_claude,  # Haiku — clinical classification
-        )
-
-    @agent
-    def decision_agent(self) -> Agent:
-        return Agent(
-            config=self.agents_config["decision_agent"],
-            verbose=True,
-            llm=llm_content_claude,  # Sonnet — complex treatment reasoning
+            llm=llm_classifier_claude,  # Haiku — ontology classification
         )
 
     @task
@@ -62,18 +62,62 @@ class HealthcareClinicalCrew:
         )
 
     @task
-    def situation_task(self) -> Task:
+    def ontology_classification_task(self) -> Task:
         return Task(
-            config=self.tasks_config["situation_task"],
+            config=self.tasks_config["ontology_classification_task"],
             context=[self.sensor_task()],
             output_pydantic=FlatEnvelope,
         )
 
+    @crew
+    def crew(self) -> Crew:
+        return Crew(
+            agents=self.agents,
+            tasks=self.tasks,
+            process=Process.sequential,
+            verbose=True,
+        )
+
+
+@CrewBase
+class HealthcareSemanticCrew:
+    """semantic_forward pipeline: triage → allocation (2 agents, 2 tasks).
+
+    Consumes the raw pipeline's terminal artifact (the ontology-classified
+    semantic_payload) via the ``upstream_semantic_payload`` input.
+    """
+
+    agents_config = "config/semantic_agents.yaml"
+    tasks_config = "config/semantic_tasks.yaml"
+
+    @agent
+    def triage_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config["triage_agent"],
+            verbose=True,
+            llm=llm_classifier_claude,  # Haiku — triage classification
+        )
+
+    @agent
+    def allocation_agent(self) -> Agent:
+        return Agent(
+            config=self.agents_config["allocation_agent"],
+            verbose=True,
+            llm=llm_content_claude,  # Sonnet — allocation reasoning
+        )
+
     @task
-    def decision_task(self) -> Task:
+    def triage_task(self) -> Task:
         return Task(
-            config=self.tasks_config["decision_task"],
-            context=[self.situation_task()],
+            config=self.tasks_config["triage_task"],
+            output_pydantic=FlatEnvelope,
+        )
+
+    @task
+    def allocation_task(self) -> Task:
+        return Task(
+            config=self.tasks_config["allocation_task"],
+            context=[self.triage_task()],
             output_pydantic=FlatEnvelope,
         )
 

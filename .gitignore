@@ -15,3 +15,5 @@ mcp/.chalice/deployments/
 .pytest_cache/
 *.db
 .jhcontext-crewai/
+out/
+texput.log
